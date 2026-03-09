@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { GitHubService } from '../../core/api/github.service';
 import { NotesService } from '../../core/api/notes.service';
+import { KeyboardShortcutService } from '../../core/services/keyboard-shortcut.service';
 import { GoogleAuthService, GoogleAuthStatus } from '../../core/api/google-auth.service';
 import { WatchedRepo, GitHubOAuthStatus } from '../../core/models/github.model';
 import { HealthStatus } from '../../core/models/note.model';
@@ -37,6 +38,38 @@ import { HealthStatus } from '../../core/models/note.model';
         @if (nameSaved()) {
           <div class="mt-2" style="font-size:0.8rem;color:var(--green);">
             <i class="bi bi-check-circle me-1"></i>Saved!
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Keyboard Shortcuts -->
+    <div class="card mb-4">
+      <div class="card-header py-2 px-3">
+        <i class="bi bi-keyboard me-2 text-accent"></i>
+        <span style="font-weight:600;font-size:0.9rem;">Keyboard Shortcuts</span>
+      </div>
+      <div class="card-body p-3">
+        <p class="mb-3" style="font-size:0.82rem;color:var(--text-secondary);">
+          Set the leader key for the command palette. Press <kbd style="background:var(--bg-raised);border:1px solid var(--border);border-radius:3px;padding:1px 5px;font-family:var(--font-mono);font-size:0.8rem;">Alt</kbd>
+          + your chosen key to open quick actions.
+        </p>
+        <div class="d-flex gap-2 align-items-center" style="max-width:400px;">
+          <div class="d-flex align-items-center gap-2">
+            <span style="font-size:0.82rem;color:var(--text-secondary);font-weight:500;">Alt +</span>
+            <input class="form-control form-control-sm text-center"
+                   style="width:60px;font-family:var(--font-mono);font-weight:600;text-transform:uppercase;"
+                   [value]="shortcutSvc.leaderKey().toUpperCase()"
+                   maxlength="1"
+                   (keydown)="captureLeaderKey($event)" readonly
+                   placeholder="Key"
+                   title="Click and press any key" />
+          </div>
+          <span style="font-size:0.75rem;color:var(--text-dim);">Click the box and press any key</span>
+        </div>
+        @if (leaderKeySaved()) {
+          <div class="mt-2" style="font-size:0.8rem;color:var(--green);">
+            <i class="bi bi-check-circle me-1"></i>Leader key set to <kbd style="background:var(--bg-raised);border:1px solid var(--border);border-radius:3px;padding:1px 5px;font-family:var(--font-mono);font-size:0.8rem;">{{ shortcutSvc.leaderCombo() }}</kbd>
           </div>
         }
       </div>
@@ -291,6 +324,9 @@ export class SettingsComponent implements OnInit {
   private notesSvc = inject(NotesService);
   private googleAuthSvc = inject(GoogleAuthService);
   private route = inject(ActivatedRoute);
+  shortcutSvc = inject(KeyboardShortcutService);
+
+  leaderKeySaved = signal(false);
 
   watchedRepos = signal<WatchedRepo[]>([]);
   loadingRepos = signal(true);
@@ -422,6 +458,15 @@ export class SettingsComponent implements OnInit {
       },
       error: () => this.savingName.set(false)
     });
+  }
+
+  captureLeaderKey(e: KeyboardEvent) {
+    e.preventDefault();
+    const key = e.key;
+    if (key === 'Alt' || key === 'Control' || key === 'Shift' || key === 'Meta' || key === 'Tab' || key === 'Escape') return;
+    this.shortcutSvc.setLeaderKey(key);
+    this.leaderKeySaved.set(true);
+    setTimeout(() => this.leaderKeySaved.set(false), 2000);
   }
 
   loadHealth() {

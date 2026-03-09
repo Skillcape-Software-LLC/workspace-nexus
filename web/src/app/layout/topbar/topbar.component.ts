@@ -31,7 +31,7 @@ import { KeyboardShortcutService } from '../../core/services/keyboard-shortcut.s
       </ul>
 
       <div class="d-flex align-items-center gap-3">
-        <button (click)="shortcuts.openPalette()" title="Quick actions (Alt+K)"
+        <button (click)="shortcuts.openPalette()" [title]="'Quick actions (' + shortcuts.leaderCombo() + ')'"
                 class="new-note-btn"
                 style="
                   background:var(--bg-raised);border:1px solid var(--border);

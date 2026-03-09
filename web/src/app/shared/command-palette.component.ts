@@ -25,7 +25,7 @@ import { KeyboardShortcutService } from '../core/services/keyboard-shortcut.serv
           }
         </div>
         <div class="palette-footer">
-          Press a key or <kbd>Esc</kbd> to close
+          Press a key to act &middot; <kbd>Esc</kbd> to cancel
         </div>
       </div>
     }

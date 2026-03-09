@@ -1,6 +1,9 @@
 import { Injectable, NgZone, signal, computed, inject, DestroyRef } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
 
+const LEADER_KEY_STORAGE = 'nexus_leader_key';
+const DEFAULT_LEADER_KEY = 'j';
+
 export interface ShortcutAction {
   id: string;
   key: string;
@@ -25,11 +28,12 @@ export class KeyboardShortcutService {
 
   private actions = signal<ShortcutAction[]>([]);
   private directShortcuts: DirectShortcut[] = [];
-  private dismissTimer: ReturnType<typeof setTimeout> | null = null;
 
+  readonly leaderKey = signal(this.loadLeaderKey());
   readonly paletteOpen = signal(false);
   readonly helpOpen = signal(false);
   readonly availableActions = computed(() => this.actions());
+  readonly leaderCombo = computed(() => `Alt+${this.leaderKey().toUpperCase()}`);
 
   constructor() {
     this.zone.runOutsideAngular(() => {
@@ -56,19 +60,22 @@ export class KeyboardShortcutService {
     this.directShortcuts = this.directShortcuts.filter(s => s.id !== id);
   }
 
+  setLeaderKey(key: string): void {
+    const normalized = key.toLowerCase().trim();
+    if (!normalized) return;
+    localStorage.setItem(LEADER_KEY_STORAGE, normalized);
+    this.leaderKey.set(normalized);
+  }
+
   openPalette(): void {
     this.zone.run(() => {
       this.helpOpen.set(false);
       this.paletteOpen.set(true);
-      this.startDismissTimer();
     });
   }
 
   closePalette(): void {
-    this.zone.run(() => {
-      this.paletteOpen.set(false);
-      this.clearDismissTimer();
-    });
+    this.zone.run(() => this.paletteOpen.set(false));
   }
 
   openHelp(): void {
@@ -83,10 +90,9 @@ export class KeyboardShortcutService {
   }
 
   private handleKeydown(e: KeyboardEvent): void {
-    // Palette is open — listen for action keys
+    // Palette is open — listen for action keys or Escape to abort
     if (this.paletteOpen()) {
       e.preventDefault();
-      this.clearDismissTimer();
 
       if (e.key === 'Escape') {
         this.closePalette();
@@ -110,8 +116,8 @@ export class KeyboardShortcutService {
       return;
     }
 
-    // Alt+K — open palette
-    if (e.altKey && (e.key === 'k' || e.key === 'K')) {
+    // Alt + <leaderKey> — open palette
+    if (e.altKey && e.key.toLowerCase() === this.leaderKey()) {
       e.preventDefault();
       this.openPalette();
       return;
@@ -138,15 +144,7 @@ export class KeyboardShortcutService {
     return false;
   }
 
-  private startDismissTimer(): void {
-    this.clearDismissTimer();
-    this.dismissTimer = setTimeout(() => this.closePalette(), 2000);
-  }
-
-  private clearDismissTimer(): void {
-    if (this.dismissTimer) {
-      clearTimeout(this.dismissTimer);
-      this.dismissTimer = null;
-    }
+  private loadLeaderKey(): string {
+    return localStorage.getItem(LEADER_KEY_STORAGE) || DEFAULT_LEADER_KEY;
   }
 }

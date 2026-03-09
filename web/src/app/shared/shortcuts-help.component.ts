@@ -17,14 +17,14 @@ import { KeyboardShortcutService } from '../core/services/keyboard-shortcut.serv
           <div class="help-group">
             <div class="help-group-title">Command Palette</div>
             <div class="help-row">
-              <span class="help-keys"><kbd>Alt</kbd> + <kbd>K</kbd></span>
+              <span class="help-keys"><kbd>{{ svc.leaderCombo() }}</kbd></span>
               <span>Open quick actions</span>
             </div>
           </div>
 
           <div class="help-group">
             <div class="help-group-title">Leader Commands</div>
-            <div class="help-hint">Press <kbd>Alt</kbd>+<kbd>K</kbd> first, then:</div>
+            <div class="help-hint">Press <kbd>{{ svc.leaderCombo() }}</kbd> first, then:</div>
             @for (action of svc.availableActions(); track action.id) {
               <div class="help-row">
                 <span class="help-keys"><kbd>{{ action.key }}</kbd></span>
