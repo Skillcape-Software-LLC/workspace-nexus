@@ -1,7 +1,9 @@
-import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, inject, signal, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule, DatePipe } from '@angular/common';
 import { GmailService } from './gmail.service';
 import { EmailSummary } from '../../core/models/google.model';
+import { HubRefreshService } from '../../core/services/hub-refresh.service';
 
 @Component({
   selector: 'app-gmail-panel',
@@ -45,7 +47,7 @@ import { EmailSummary } from '../../core/models/google.model';
           <ul class="list-unstyled mb-0">
             @for (email of unreadEmails(); track email.id) {
               <a [href]="'https://mail.google.com/mail/u/0/#all/' + email.threadId"
-                 target="_blank" rel="noopener"
+                 target="_blank" rel="noopener" (click)="onEmailClick()"
                  class="d-block px-3 py-2 border-bottom email-row"
                  style="border-color:var(--border) !important;text-decoration:none;transition:background .1s;">
                 <div class="d-flex align-items-start gap-2">
@@ -83,6 +85,7 @@ import { EmailSummary } from '../../core/models/google.model';
 export class GmailPanelComponent implements OnInit, OnDestroy {
   private svc = inject(GmailService);
   private refreshTimer?: ReturnType<typeof setInterval>;
+  private delayedSyncTimer?: ReturnType<typeof setTimeout>;
 
   emails = signal<EmailSummary[]>([]);
   loading = signal(true);
@@ -90,13 +93,18 @@ export class GmailPanelComponent implements OnInit, OnDestroy {
 
   unreadEmails = computed(() => this.emails().filter(e => e.isUnread));
 
+  private destroyRef = inject(DestroyRef);
+  private hubRefresh = inject(HubRefreshService);
+
   ngOnInit() {
     this.load();
     this.refreshTimer = setInterval(() => this.load(), 5 * 60 * 1000);
+    this.hubRefresh.onRefresh$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => this.load());
   }
 
   ngOnDestroy() {
     if (this.refreshTimer) clearInterval(this.refreshTimer);
+    if (this.delayedSyncTimer) clearTimeout(this.delayedSyncTimer);
   }
 
   load() {
@@ -109,6 +117,18 @@ export class GmailPanelComponent implements OnInit, OnDestroy {
         this.error.set(msg);
         this.loading.set(false);
       }
+    });
+  }
+
+  onEmailClick() {
+    if (this.delayedSyncTimer) clearTimeout(this.delayedSyncTimer);
+    this.delayedSyncTimer = setTimeout(() => this.silentLoad(), 5000);
+  }
+
+  private silentLoad() {
+    this.svc.getInbox().subscribe({
+      next: (data: EmailSummary[]) => this.emails.set(data),
+      error: () => {}
     });
   }
 

@@ -151,6 +151,15 @@ public class GitHubController : ControllerBase
         return Ok(new { message = "Sync complete." });
     }
 
+    // ── Lightweight Refresh (CI status only) ─────────────────────────────────
+
+    [HttpPost("refresh")]
+    public async Task<IActionResult> RefreshCi()
+    {
+        await _poller.RefreshCiAsync();
+        return Ok(new { message = "Refresh complete." });
+    }
+
     // ── CI Status ─────────────────────────────────────────────────────────────
 
     [HttpGet("ci-status")]

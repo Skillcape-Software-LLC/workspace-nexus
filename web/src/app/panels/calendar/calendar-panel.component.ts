@@ -1,7 +1,9 @@
-import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, inject, signal, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule, DatePipe } from '@angular/common';
 import { CalendarService } from './calendar.service';
 import { CalendarEvent } from '../../core/models/google.model';
+import { HubRefreshService } from '../../core/services/hub-refresh.service';
 
 const BAR_COLORS = ['var(--blue)', 'var(--accent)', 'var(--green)', 'var(--yellow)'];
 
@@ -115,9 +117,13 @@ export class CalendarPanelComponent implements OnInit, OnDestroy {
     return Object.entries(groups).map(([date, events]) => ({ date, events }));
   });
 
+  private destroyRef = inject(DestroyRef);
+  private hubRefresh = inject(HubRefreshService);
+
   ngOnInit() {
     this.load();
     this.refreshTimer = setInterval(() => this.load(), 10 * 60 * 1000);
+    this.hubRefresh.onRefresh$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => this.load());
   }
 
   ngOnDestroy() {

@@ -203,6 +203,34 @@ import { HealthStatus } from '../../core/models/note.model';
       </div>
     </div>
 
+    <!-- Sync Repositories -->
+    <div class="card mb-4">
+      <div class="card-header py-2 px-3">
+        <i class="bi bi-arrow-repeat me-2 text-accent"></i>
+        <span style="font-weight:600;font-size:0.9rem;">Sync Repositories</span>
+      </div>
+      <div class="card-body p-3">
+        <p class="mb-3" style="font-size:0.82rem;color:var(--text-secondary);">
+          Run a full sync to discover new repositories and refresh all metadata (CI status, PRs, commits).
+          This may take a moment.
+        </p>
+        <button class="btn btn-accent btn-sm" (click)="forceSync()" [disabled]="forceSyncing()">
+          @if (forceSyncing()) { <span class="spinner-border spinner-border-sm me-1"></span> }
+          <i class="bi bi-arrow-repeat me-1"></i>Force Sync
+        </button>
+        @if (syncSuccess()) {
+          <div class="mt-2" style="font-size:0.8rem;color:var(--green);">
+            <i class="bi bi-check-circle me-1"></i>Sync complete!
+          </div>
+        }
+        @if (syncError()) {
+          <div class="mt-2" style="font-size:0.8rem;color:var(--red);">
+            <i class="bi bi-exclamation-circle me-1"></i>{{ syncError() }}
+          </div>
+        }
+      </div>
+    </div>
+
     <!-- Health Status -->
     <div class="card mb-4">
       <div class="card-header py-2 px-3">
@@ -287,6 +315,10 @@ export class SettingsComponent implements OnInit {
   loadingGitHub = signal(true);
   disconnectingGitHub = signal(false);
   githubConnectedMsg = signal(false);
+
+  forceSyncing = signal(false);
+  syncSuccess = signal(false);
+  syncError = signal<string | null>(null);
 
   ngOnInit() {
     this.loadRepos();
@@ -417,6 +449,23 @@ export class SettingsComponent implements OnInit {
       error: (err: { error?: { error?: string }; status?: number }) => {
         this.addError.set(err.error?.error ?? 'Failed to add repo.');
         this.saving.set(false);
+      }
+    });
+  }
+
+  forceSync() {
+    this.forceSyncing.set(true);
+    this.syncSuccess.set(false);
+    this.syncError.set(null);
+    this.ghSvc.forceSync().subscribe({
+      next: () => {
+        this.forceSyncing.set(false);
+        this.syncSuccess.set(true);
+        setTimeout(() => this.syncSuccess.set(false), 3000);
+      },
+      error: (err: { error?: { error?: string } }) => {
+        this.syncError.set(err.error?.error ?? 'Sync failed.');
+        this.forceSyncing.set(false);
       }
     });
   }

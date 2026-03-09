@@ -1,7 +1,9 @@
-import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, inject, signal, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { GitHubService } from '../../core/api/github.service';
 import { CiStatus, CiStatusValue } from '../../core/models/github.model';
+import { HubRefreshService } from '../../core/services/hub-refresh.service';
 
 @Component({
   selector: 'app-github-panel',
@@ -118,9 +120,13 @@ export class GithubPanelComponent implements OnInit, OnDestroy {
     })
   );
 
+  private destroyRef = inject(DestroyRef);
+  private hubRefresh = inject(HubRefreshService);
+
   ngOnInit() {
     this.load();
     this.refreshTimer = setInterval(() => this.load(), 60_000);
+    this.hubRefresh.onRefresh$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => this.load());
   }
 
   ngOnDestroy() {
@@ -142,7 +148,7 @@ export class GithubPanelComponent implements OnInit, OnDestroy {
   sync() {
     this.syncing.set(true);
     this.error.set(null);
-    this.svc.forceSync().subscribe({
+    this.svc.refreshCi().subscribe({
       next: () => { this.syncing.set(false); this.load(); },
       error: (err: { error?: { error?: string } }) => {
         this.error.set(err.error?.error ?? 'Sync failed.');

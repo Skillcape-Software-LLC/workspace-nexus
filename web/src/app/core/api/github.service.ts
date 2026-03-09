@@ -17,6 +17,10 @@ export class GitHubService {
     return this.http.post<void>(`${this.base}/sync`, null);
   }
 
+  refreshCi(): Observable<void> {
+    return this.http.post<void>(`${this.base}/refresh`, null);
+  }
+
   getCiStatus(owner: string, repo: string): Observable<CiStatus> {
     return this.http.get<CiStatus>(`${this.base}/ci-status/${owner}/${repo}`);
   }

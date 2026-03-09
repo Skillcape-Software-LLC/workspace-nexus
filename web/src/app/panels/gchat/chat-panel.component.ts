@@ -1,7 +1,9 @@
-import { Component, OnDestroy, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, signal, computed, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ChatService } from './chat.service';
 import { ChatSpace } from '../../core/models/google.model';
+import { HubRefreshService } from '../../core/services/hub-refresh.service';
 
 @Component({
   selector: 'app-chat-panel',
@@ -94,9 +96,13 @@ export class ChatPanelComponent implements OnInit, OnDestroy {
     this.spaces().reduce((sum, s) => sum + s.unreadCount, 0)
   );
 
+  private destroyRef = inject(DestroyRef);
+  private hubRefresh = inject(HubRefreshService);
+
   ngOnInit() {
     this.load();
     this.refreshTimer = setInterval(() => this.load(), 5 * 60 * 1000);
+    this.hubRefresh.onRefresh$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => this.load());
   }
 
   ngOnDestroy() {

@@ -1,10 +1,11 @@
-import { Component, OnInit, OnDestroy, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal, computed, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { marked } from 'marked';
 import { Subscription } from 'rxjs';
 import { NotesService } from '../../core/api/notes.service';
 import { Note, parseTags } from '../../core/models/note.model';
+import { KeyboardShortcutService } from '../../core/services/keyboard-shortcut.service';
 
 @Component({
   selector: 'app-notes',
@@ -41,7 +42,7 @@ import { Note, parseTags } from '../../core/models/note.model';
     @if (!loading() && allNotes().length > 0) {
       <!-- Search & filters -->
       <div class="mb-4 d-flex flex-column gap-2">
-        <input
+        <input #searchInput
           [(ngModel)]="searchQuery"
           placeholder="Search notes…"
           class="notes-search"
@@ -388,7 +389,10 @@ import { Note, parseTags } from '../../core/models/note.model';
 })
 export class NotesComponent implements OnInit, OnDestroy {
   private notesSvc = inject(NotesService);
+  private shortcuts = inject(KeyboardShortcutService);
   private sub?: Subscription;
+
+  @ViewChild('searchInput') searchInputRef?: ElementRef<HTMLInputElement>;
 
 
   loading = signal(true);
@@ -430,10 +434,18 @@ export class NotesComponent implements OnInit, OnDestroy {
   ngOnInit() {
     this.load();
     this.sub = this.notesSvc.noteCreated$.subscribe(() => this.load());
+    this.shortcuts.register({
+      id: 'notes-search',
+      key: '/',
+      label: 'Search notes',
+      category: 'action',
+      callback: () => this.searchInputRef?.nativeElement.focus()
+    });
   }
 
   ngOnDestroy() {
     this.sub?.unsubscribe();
+    this.shortcuts.unregister('notes-search');
   }
 
   setView(view: 'active' | 'archive') {

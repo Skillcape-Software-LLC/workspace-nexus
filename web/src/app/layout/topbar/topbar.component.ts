@@ -1,6 +1,7 @@
-import { Component, EventEmitter, OnDestroy, OnInit, Output, signal } from '@angular/core';
+import { Component, EventEmitter, OnDestroy, OnInit, Output, inject, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { KeyboardShortcutService } from '../../core/services/keyboard-shortcut.service';
 
 @Component({
   selector: 'app-topbar',
@@ -30,6 +31,18 @@ import { CommonModule } from '@angular/common';
       </ul>
 
       <div class="d-flex align-items-center gap-3">
+        <button (click)="shortcuts.openPalette()" title="Quick actions (Alt+K)"
+                class="new-note-btn"
+                style="
+                  background:var(--bg-raised);border:1px solid var(--border);
+                  border-radius:6px;padding:0.3rem 0.5rem;
+                  color:var(--text-dim);cursor:pointer;display:flex;align-items:center;
+                  font-size:0.78rem;font-family:var(--font-body);">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M14 5a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h12zM2 4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H2z"/>
+            <path d="M13 10.25a.25.25 0 0 1 .25-.25h.5a.25.25 0 0 1 .25.25v.5a.25.25 0 0 1-.25.25h-.5a.25.25 0 0 1-.25-.25v-.5zm0-2a.25.25 0 0 1 .25-.25h.5a.25.25 0 0 1 .25.25v.5a.25.25 0 0 1-.25.25h-.5a.25.25 0 0 1-.25-.25v-.5zm-5 0A.25.25 0 0 1 8.25 8h.5a.25.25 0 0 1 .25.25v.5a.25.25 0 0 1-.25.25h-.5A.25.25 0 0 1 8 8.75v-.5zM4.5 8a.5.5 0 0 0 0 1h7a.5.5 0 0 0 0-1h-7z"/>
+          </svg>
+        </button>
         <button (click)="newNoteClicked.emit()" title="New note (Alt+N)"
                 class="new-note-btn"
                 style="
@@ -48,10 +61,6 @@ import { CommonModule } from '@angular/common';
           <span class="status-dot" [class.online]="true"
                 style="width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);animation:pulse 2s infinite;"></span>
           <span style="font-family:var(--font-mono);font-size:0.8rem;color:var(--text-secondary);">{{ clock() }}</span>
-        </div>
-        <div class="d-flex align-items-center justify-content-center"
-             style="width:32px;height:32px;border-radius:50%;background:var(--bg-raised);border:1px solid var(--border);font-size:0.75rem;color:var(--text-secondary);font-weight:600;cursor:default;">
-          NX
         </div>
       </div>
     </nav>
@@ -76,6 +85,7 @@ import { CommonModule } from '@angular/common';
   `
 })
 export class TopbarComponent implements OnInit, OnDestroy {
+  shortcuts = inject(KeyboardShortcutService);
   @Output() newNoteClicked = new EventEmitter<void>();
 
   clock = signal('');

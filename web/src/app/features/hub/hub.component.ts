@@ -1,8 +1,10 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { GmailPanelComponent } from '../../panels/gmail/gmail-panel.component';
 import { ChatPanelComponent } from '../../panels/gchat/chat-panel.component';
 import { CalendarPanelComponent } from '../../panels/calendar/calendar-panel.component';
 import { GithubPanelComponent } from '../../panels/github/github-panel.component';
+import { KeyboardShortcutService } from '../../core/services/keyboard-shortcut.service';
+import { HubRefreshService } from '../../core/services/hub-refresh.service';
 
 @Component({
   selector: 'app-hub',
@@ -48,4 +50,21 @@ import { GithubPanelComponent } from '../../panels/github/github-panel.component
     </div>
   `
 })
-export class HubComponent {}
+export class HubComponent implements OnInit, OnDestroy {
+  private shortcuts = inject(KeyboardShortcutService);
+  private hubRefresh = inject(HubRefreshService);
+
+  ngOnInit() {
+    this.shortcuts.register({
+      id: 'hub-refresh',
+      key: 'r',
+      label: 'Refresh panels',
+      category: 'action',
+      callback: () => this.hubRefresh.refreshAll()
+    });
+  }
+
+  ngOnDestroy() {
+    this.shortcuts.unregister('hub-refresh');
+  }
+}

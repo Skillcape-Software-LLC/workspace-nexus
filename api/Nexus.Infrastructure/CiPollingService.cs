@@ -44,6 +44,49 @@ public class CiPollingService : BackgroundService
 
     public async Task PollNowAsync() => await PollAllAsync();
 
+    /// <summary>Lightweight refresh — only fetches latest CI run status per watched repo.</summary>
+    public async Task RefreshCiAsync()
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var svc = scope.ServiceProvider.GetRequiredService<GitHubService>();
+        var watchedRepo = scope.ServiceProvider.GetRequiredService<IWatchedRepoRepository>();
+        var ciRepo = scope.ServiceProvider.GetRequiredService<ICiStatusRepository>();
+
+        if (!await svc.IsConfiguredAsync())
+            return;
+
+        var repos = await watchedRepo.GetAllAsync();
+        if (repos.Count == 0) return;
+
+        _logger.LogInformation("Lightweight CI refresh for {Count} repos.", repos.Count);
+
+        foreach (var watched in repos)
+        {
+            var parts = watched.RepoFullName.Split('/', 2);
+            if (parts.Length != 2) continue;
+            var (owner, repo) = (parts[0], parts[1]);
+
+            var status = await svc.GetLatestRunAsync(owner, repo) ?? new Nexus.Core.Models.CiStatus
+            {
+                RepoFullName = watched.RepoFullName,
+                Status       = Nexus.Core.Models.CiStatusValue.Unknown,
+                UpdatedAt    = DateTime.UtcNow
+            };
+
+            // Preserve existing metadata from DB so the UI doesn't lose it
+            var existing = await ciRepo.GetByRepoAsync(watched.RepoFullName);
+            if (existing != null)
+            {
+                status.OpenPrCount      = existing.OpenPrCount;
+                status.LastPushedAt     = existing.LastPushedAt;
+                status.DefaultBranch    = existing.DefaultBranch;
+                status.LastCommitMessage = existing.LastCommitMessage;
+            }
+
+            await ciRepo.UpsertAsync(status);
+        }
+    }
+
     private async Task PollAllAsync()
     {
         using var scope = _scopeFactory.CreateScope();

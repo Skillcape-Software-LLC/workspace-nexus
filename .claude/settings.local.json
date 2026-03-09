@@ -14,7 +14,8 @@
       "Bash(taskkill:*)",
       "Bash(chmod +x:*)",
       "Bash(magick:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(npx ng build)"
     ]
   }
 }
