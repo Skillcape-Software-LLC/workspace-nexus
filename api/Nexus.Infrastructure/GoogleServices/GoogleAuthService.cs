@@ -21,6 +21,7 @@ public class GoogleAuthService
         "https://www.googleapis.com/auth/calendar.readonly",
         "https://www.googleapis.com/auth/chat.spaces.readonly",
         "https://www.googleapis.com/auth/chat.messages.readonly",
+        "https://www.googleapis.com/auth/chat.memberships.readonly",
         "email",
         "profile"
     ];
@@ -112,6 +113,20 @@ public class GoogleAuthService
         }
 
         return (true, email);
+    }
+
+    public async Task<string?> GetCurrentUserIdAsync()
+    {
+        var token = await _dataStore.GetAsync<TokenResponse>("nexus_user");
+        if (token == null || string.IsNullOrEmpty(token.IdToken)) return null;
+
+        try
+        {
+            var payload = await GoogleJsonWebSignature.ValidateAsync(token.IdToken,
+                new GoogleJsonWebSignature.ValidationSettings { ForceGoogleCertRefresh = false });
+            return payload.Subject; // Google account ID, used in Chat API as users/{id}
+        }
+        catch { return null; }
     }
 
     public async Task DisconnectAsync() => await _dataStore.ClearAsync();

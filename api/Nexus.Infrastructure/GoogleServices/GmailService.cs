@@ -58,4 +58,78 @@ public class GmailService
         results.AddRange(await Task.WhenAll(tasks));
         return results.OrderByDescending(e => e.ReceivedAt).ToList();
     }
+
+    public async Task<ThreadDetailDto?> GetThreadAsync(string threadId, int maxMessages = 3)
+    {
+        var credential = await _auth.GetCredentialAsync();
+        if (credential == null) return null;
+
+        var service = new Google.Apis.Gmail.v1.GmailService(new BaseClientService.Initializer
+        {
+            HttpClientInitializer = credential,
+            ApplicationName = "Nexus"
+        });
+
+        var req = service.Users.Threads.Get("me", threadId);
+        req.Format = UsersResource.ThreadsResource.GetRequest.FormatEnum.Full;
+        var thread = await req.ExecuteAsync();
+
+        if (thread?.Messages == null || thread.Messages.Count == 0)
+            return new ThreadDetailDto { ThreadId = threadId };
+
+        string GetHeader(Message msg, string name) =>
+            msg.Payload?.Headers?.FirstOrDefault(h =>
+                string.Equals(h.Name, name, StringComparison.OrdinalIgnoreCase))?.Value ?? string.Empty;
+
+        var subject = GetHeader(thread.Messages.First(), "Subject");
+
+        var messages = thread.Messages.TakeLast(maxMessages).Select(msg =>
+        {
+            DateTime.TryParse(GetHeader(msg, "Date"), out var sentAt);
+            var (html, text) = ExtractBody(msg.Payload);
+            return new ThreadMessageDto
+            {
+                Id = msg.Id ?? string.Empty,
+                From = GetHeader(msg, "From"),
+                SentAt = sentAt,
+                BodyHtml = html,
+                BodyText = text
+            };
+        }).ToList();
+
+        return new ThreadDetailDto { ThreadId = threadId, Subject = subject, Messages = messages };
+    }
+
+    private static (string? Html, string? Text) ExtractBody(MessagePart? part)
+    {
+        if (part == null) return (null, null);
+
+        if (part.Parts == null || part.Parts.Count == 0)
+        {
+            if (part.Body?.Data == null) return (null, null);
+            var decoded = DecodeBase64Url(part.Body.Data);
+            if (string.Equals(part.MimeType, "text/html", StringComparison.OrdinalIgnoreCase))
+                return (decoded, null);
+            if (string.Equals(part.MimeType, "text/plain", StringComparison.OrdinalIgnoreCase))
+                return (null, decoded);
+            return (null, null);
+        }
+
+        string? html = null, text = null;
+        foreach (var child in part.Parts)
+        {
+            var (h, t) = ExtractBody(child);
+            html ??= h;
+            text ??= t;
+            if (html != null) break;
+        }
+        return (html, text);
+    }
+
+    private static string DecodeBase64Url(string base64Url)
+    {
+        var padded = base64Url.Replace('-', '+').Replace('_', '/');
+        padded += (padded.Length % 4) switch { 2 => "==", 3 => "=", _ => "" };
+        return System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(padded));
+    }
 }

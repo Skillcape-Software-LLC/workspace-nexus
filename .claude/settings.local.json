@@ -12,7 +12,9 @@
       "Bash(rm:*)",
       "Bash(pkill:*)",
       "Bash(taskkill:*)",
-      "Bash(chmod +x:*)"
+      "Bash(chmod +x:*)",
+      "Bash(magick:*)",
+      "Bash(node:*)"
     ]
   }
 }

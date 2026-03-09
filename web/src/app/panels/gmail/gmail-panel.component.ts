@@ -13,9 +13,9 @@ import { EmailSummary } from '../../core/models/google.model';
         <div class="d-flex align-items-center gap-2">
           <i class="bi bi-envelope text-accent"></i>
           <span style="font-weight:600;font-size:0.875rem;">Gmail</span>
-          @if (unreadCount() > 0) {
+          @if (unreadEmails().length > 0) {
             <span class="badge rounded-pill" style="background:var(--accent);color:#000;font-size:0.7rem;">
-              {{ unreadCount() }}
+              {{ unreadEmails().length }}
             </span>
           }
         </div>
@@ -28,7 +28,7 @@ import { EmailSummary } from '../../core/models/google.model';
         @if (loading()) {
           <div class="p-3 d-flex flex-column gap-2">
             @for (i of [1,2,3,4,5]; track i) {
-              <div class="skeleton-row" style="height:40px;border-radius:6px;background:var(--bg-raised);animation:pulse 1.5s infinite;"></div>
+              <div style="height:40px;border-radius:6px;background:var(--bg-raised);animation:pulse 1.5s infinite;"></div>
             }
           </div>
         } @else if (error()) {
@@ -36,28 +36,23 @@ import { EmailSummary } from '../../core/models/google.model';
             <i class="bi bi-exclamation-circle d-block mb-1" style="font-size:1.5rem;color:var(--red);"></i>
             {{ error() }}
           </div>
-        } @else if (emails().length === 0) {
-          <div class="p-3 text-center" style="color:var(--text-dim);font-size:0.8rem;">
-            <i class="bi bi-inbox d-block mb-1" style="font-size:1.5rem;"></i>
-            Inbox is empty
+        } @else if (unreadEmails().length === 0) {
+          <div class="p-4 text-center" style="color:var(--text-dim);font-size:0.82rem;">
+            <i class="bi bi-check2-all d-block mb-2" style="font-size:1.8rem;color:var(--green);"></i>
+            All caught up
           </div>
         } @else {
           <ul class="list-unstyled mb-0">
-            @for (email of emails(); track email.id) {
-              <a [href]="'https://mail.google.com/mail/u/0/#inbox/' + email.threadId"
+            @for (email of unreadEmails(); track email.id) {
+              <a [href]="'https://mail.google.com/mail/u/0/#all/' + email.threadId"
                  target="_blank" rel="noopener"
                  class="d-block px-3 py-2 border-bottom email-row"
-                 style="border-color:var(--border) !important;text-decoration:none;transition:background .1s;"
-                 [style.background]="email.isUnread ? 'var(--bg-raised)' : 'transparent'">
+                 style="border-color:var(--border) !important;text-decoration:none;transition:background .1s;">
                 <div class="d-flex align-items-start gap-2">
-                  @if (email.isUnread) {
-                    <span style="width:6px;height:6px;border-radius:50%;background:var(--accent);margin-top:5px;flex-shrink:0;"></span>
-                  } @else {
-                    <span style="width:6px;flex-shrink:0;"></span>
-                  }
+                  <span style="width:6px;height:6px;border-radius:50%;background:var(--accent);margin-top:5px;flex-shrink:0;"></span>
                   <div class="flex-grow-1 overflow-hidden">
                     <div class="d-flex justify-content-between align-items-baseline gap-1">
-                      <span class="text-truncate" style="font-size:0.78rem;font-weight:{{email.isUnread ? '600' : '400'}};color:var(--text-primary);">
+                      <span class="text-truncate" style="font-size:0.78rem;font-weight:600;color:var(--text-primary);">
                         {{ formatFrom(email.from) }}
                       </span>
                       <span class="flex-shrink-0" style="font-size:0.68rem;color:var(--text-dim);">
@@ -68,6 +63,7 @@ import { EmailSummary } from '../../core/models/google.model';
                       {{ email.subject || '(no subject)' }}
                     </div>
                   </div>
+                  <i class="bi bi-box-arrow-up-right flex-shrink-0" style="font-size:0.68rem;color:var(--text-dim);margin-top:4px;"></i>
                 </div>
               </a>
             }
@@ -92,7 +88,7 @@ export class GmailPanelComponent implements OnInit, OnDestroy {
   loading = signal(true);
   error = signal<string | null>(null);
 
-  unreadCount = computed(() => this.emails().filter(e => e.isUnread).length);
+  unreadEmails = computed(() => this.emails().filter(e => e.isUnread));
 
   ngOnInit() {
     this.load();

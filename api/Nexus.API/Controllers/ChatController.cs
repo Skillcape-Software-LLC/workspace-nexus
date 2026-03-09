@@ -8,8 +8,13 @@ namespace Nexus.API.Controllers;
 public class ChatController : ControllerBase
 {
     private readonly ChatService _chat;
+    private readonly ILogger<ChatController> _logger;
 
-    public ChatController(ChatService chat) => _chat = chat;
+    public ChatController(ChatService chat, ILogger<ChatController> logger)
+    {
+        _chat = chat;
+        _logger = logger;
+    }
 
     [HttpGet("spaces")]
     public async Task<IActionResult> GetSpaces()
@@ -23,25 +28,8 @@ public class ChatController : ControllerBase
         }
         catch (Exception ex)
         {
-            return StatusCode(502, new { error = $"Chat API error: {ex.Message}" });
-        }
-    }
-
-    [HttpGet("spaces/{spaceName}/messages")]
-    public async Task<IActionResult> GetMessages(string spaceName, [FromQuery] int maxResults = 10)
-    {
-        try
-        {
-            // Route captures "spaceName" but the full resource is "spaces/{spaceName}"
-            var fullName = $"spaces/{spaceName}";
-            var result = await _chat.GetRecentMessagesAsync(fullName, maxResults);
-            if (result == null)
-                return StatusCode(503, new { error = "Google credentials not configured." });
-            return Ok(result);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(502, new { error = $"Chat API error: {ex.Message}" });
+            _logger.LogError(ex, "Chat API error");
+            return StatusCode(502, new { error = "Failed to reach Google Chat. Check server logs." });
         }
     }
 }

@@ -15,4 +15,8 @@ public class CiStatus
     public string? Branch { get; set; }
     public string? RunUrl { get; set; }
     public DateTime UpdatedAt { get; set; }
+    public int? OpenPrCount { get; set; }
+    public DateTime? LastPushedAt { get; set; }
+    public string? DefaultBranch { get; set; }
+    public string? LastCommitMessage { get; set; }
 }

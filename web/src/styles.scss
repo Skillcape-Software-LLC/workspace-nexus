@@ -1,35 +1,53 @@
 // ── Google Fonts ─────────────────────────────────────────────────────────────
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500&display=swap');
 
-// ── Nexus Design Tokens ──────────────────────────────────────────────────────
+// ── Nexus × Catppuccin Mocha Design Tokens ───────────────────────────────────
+// Backgrounds  →  Mocha Polar Night layers (dark navy blue)
+// Text         →  Mocha Snow (crisp hierarchy, all readable)
+// Accent       →  Mocha Yellow (active states, brand, focus)
+// Purple/Mauve →  tags, secondary highlights
+// Blue         →  links, info, secondary interactive
+// Aurora       →  status colors (green/red/yellow/blue)
 :root {
-  --bg-base:       #0d0e12;
-  --bg-panel:      #181920;
-  --bg-raised:     #22232c;
-  --bg-hover:      #2b2d38;
-  --border:        #3c3e4d;
-  --border-bright: #545668;
-  --accent:        #f4922a;
-  --accent-dim:    #7a4215;
-  --accent-glow:   rgba(244, 146, 42, 0.15);
-  --green:         #3ddc84;
-  --red:           #ff5b5b;
-  --blue:          #4fa8e8;
-  --yellow:        #f4c842;
-  --text-primary:  #f0f1f5;
-  --text-secondary:#9e9fb0;
-  --text-dim:      #585a6a;
+  // Backgrounds — Catppuccin Mocha layers
+  --bg-base:       #1E1E2E;  // Mocha Base
+  --bg-panel:      #272739;  // between Base and Surface0 — card surfaces
+  --bg-raised:     #313244;  // Mocha Surface0 — inputs, dropdowns
+  --bg-hover:      #45475A;  // Mocha Surface1 — hover states
+
+  // Borders
+  --border:        #45475A;  // Mocha Surface1
+  --border-bright: #585B70;  // Mocha Surface2
+
+  // Primary accent — Yellow (was orange, now matches IDE palette)
+  --accent:        #F9E2AF;  // Mocha Yellow
+  --accent-dim:    #6B5A2A;  // dark yellow for disabled
+  --accent-glow:   rgba(249, 226, 175, 0.12);
+
+  // Extended palette
+  --purple:        #CBA6F7;  // Mocha Mauve  — tags, secondary highlights
+  --green:         #A6E3A1;  // Mocha Green  — success / passing
+  --red:           #F38BA8;  // Mocha Red    — error / failing
+  --blue:          #89B4FA;  // Mocha Blue   — links / info / category filters
+  --yellow:        #F9E2AF;  // Mocha Yellow — same as accent / warnings
+
+  // Text — Catppuccin Snow hierarchy (ALL readable, clear contrast steps)
+  --text-primary:  #CDD6F4;  // Mocha Text    — headings, primary content
+  --text-secondary:#BAC2DE;  // Mocha Subtext1 — body copy, email subjects
+  --text-dim:      #9399B2;  // Mocha Overlay2 — timestamps, metadata, hints
+
+  // Typography
   --font-display:  'Syne', sans-serif;
   --font-mono:     'IBM Plex Mono', monospace;
   --font-body:     'IBM Plex Sans', sans-serif;
 
-  // Map Bootstrap CSS vars to our tokens
-  --bs-body-bg:         #0d0e12;
-  --bs-body-color:      #f0f1f5;
-  --bs-border-color:    #3c3e4d;
-  --bs-card-bg:         #181920;
-  --bs-card-cap-bg:     #22232c;
-  --bs-modal-bg:        #181920;
+  // Bootstrap CSS var overrides
+  --bs-body-bg:         #1E1E2E;
+  --bs-body-color:      #CDD6F4;
+  --bs-border-color:    #45475A;
+  --bs-card-bg:         #272739;
+  --bs-card-cap-bg:     #313244;
+  --bs-modal-bg:        #272739;
 }
 
 // ── Base ──────────────────────────────────────────────────────────────────────
@@ -48,7 +66,7 @@ body {
   background-color: var(--bg-base) !important;
   color: var(--text-primary) !important;
   font-family: var(--font-body) !important;
-  background-image: radial-gradient(circle, rgba(255,255,255,0.03) 1px, transparent 1px);
+  background-image: radial-gradient(circle, rgba(255,255,255,0.035) 1px, transparent 1px);
   background-size: 20px 20px;
 }
 
@@ -56,10 +74,10 @@ body {
   background-color: var(--bg-panel);
   border-color: var(--border);
   color: var(--text-primary);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.5);
 
   &:hover {
-    box-shadow: 0 4px 12px rgba(0,0,0,0.5), 0 0 0 1px var(--border-bright);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.55), 0 0 0 1px var(--border-bright);
   }
 }
 
@@ -124,23 +142,23 @@ body {
   &:hover { background-color: var(--bg-hover); }
 }
 
-// ── Accent button ─────────────────────────────────────────────────────────────
+// ── Accent button — yellow on dark ────────────────────────────────────────────
 .btn-accent {
   background-color: var(--accent);
   border-color: var(--accent);
-  color: #000;
+  color: #1a1209;
   font-weight: 600;
 
   &:hover, &:focus {
-    background-color: #e07a1a;
-    border-color: #e07a1a;
-    color: #000;
+    background-color: #E5CB8A;
+    border-color: #E5CB8A;
+    color: #1a1209;
   }
 
   &:disabled {
     background-color: var(--accent-dim);
     border-color: var(--accent-dim);
-    color: #555;
+    color: #888;
   }
 }
 
@@ -155,15 +173,8 @@ body {
 .font-display     { font-family: var(--font-display) !important; }
 
 // ── Status badges ─────────────────────────────────────────────────────────────
-.badge-pass    { background-color: var(--green);  color: #000; }
-.badge-fail    { background-color: var(--red);    color: #fff; }
-.badge-running { background-color: var(--yellow); color: #000; }
+// Dark text on all — Catppuccin's status colors are light/pastel
+.badge-pass    { background-color: var(--green);  color: #0d2610; }
+.badge-fail    { background-color: var(--red);    color: #2e000d; }
+.badge-running { background-color: var(--yellow); color: #2a1e00; }
 .badge-unknown { background-color: var(--bg-raised); color: var(--text-dim); border: 1px solid var(--border); }
-
-// ── CDK drag-drop ─────────────────────────────────────────────────────────────
-.cdk-drag-preview  { box-shadow: 0 8px 24px rgba(0,0,0,0.5); opacity: 0.9; }
-.cdk-drag-placeholder { opacity: 0.3; }
-.cdk-drag-animating { transition: transform 250ms cubic-bezier(0,0,0.2,1); }
-.cdk-drop-list-dragging .quick-link-card:not(.cdk-drag-placeholder) {
-  transition: transform 250ms cubic-bezier(0,0,0.2,1);
-}

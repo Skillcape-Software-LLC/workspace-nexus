@@ -37,7 +37,7 @@ export function parseTags(tags: string | null | undefined): string[] {
 
 export interface HealthStatus {
   googleConnected: boolean;
-  githubPat: boolean;
+  githubConnected: boolean;
   githubWebhookSecret: boolean;
   claudeApiKey: boolean;
   apiKeyEnabled: boolean;

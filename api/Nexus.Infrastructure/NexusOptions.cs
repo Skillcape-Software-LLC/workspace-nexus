@@ -9,6 +9,8 @@ public class NexusOptions
     public string NexusBaseUrl { get; set; } = "http://localhost:5000";
     public string NexusFrontendUrl { get; set; } = "http://localhost:4200";
     public string? GitHubPat { get; set; }
+    public string? GitHubClientId { get; set; }
+    public string? GitHubClientSecret { get; set; }
     public string? GitHubWebhookSecret { get; set; }
     public string? ClaudeApiKey { get; set; }
     public string BriefingSchedule { get; set; } = "30 7 * * *";

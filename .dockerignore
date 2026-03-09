@@ -1,0 +1,10 @@
+.env
+.env.*
+.git
+.gitignore
+node_modules
+*.md
+docs/
+.claude/
+.vscode/
+**/*.db

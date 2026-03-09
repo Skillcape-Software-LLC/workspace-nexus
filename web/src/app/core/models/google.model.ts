@@ -31,3 +31,17 @@ export interface ChatMessage {
   text: string;
   createdAt: string;
 }
+
+export interface ThreadMessage {
+  id: string;
+  from: string;
+  sentAt: string;
+  bodyHtml: string | null;
+  bodyText: string | null;
+}
+
+export interface ThreadDetail {
+  threadId: string;
+  subject: string;
+  messages: ThreadMessage[];
+}

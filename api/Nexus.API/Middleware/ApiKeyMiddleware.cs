@@ -9,7 +9,7 @@ public class ApiKeyMiddleware
 
     public ApiKeyMiddleware(RequestDelegate next) => _next = next;
 
-    public async Task InvokeAsync(HttpContext context, IOptions<NexusOptions> options)
+    public async Task InvokeAsync(HttpContext context, IOptions<NexusOptions> options, ILogger<ApiKeyMiddleware> logger)
     {
         var apiKey = options.Value.ApiKey;
 
@@ -27,8 +27,9 @@ public class ApiKeyMiddleware
             return;
         }
 
-        // Skip OAuth callback — Google redirects here, no API key available
-        if (context.Request.Path.StartsWithSegments("/api/google/auth/callback"))
+        // Skip OAuth callbacks — browser redirects can't carry X-API-Key header
+        if (context.Request.Path.StartsWithSegments("/api/google/auth/callback") ||
+            context.Request.Path.StartsWithSegments("/api/github/oauth/callback"))
         {
             await _next(context);
             return;
@@ -37,6 +38,8 @@ public class ApiKeyMiddleware
         if (!context.Request.Headers.TryGetValue("X-API-Key", out var providedKey) ||
             providedKey != apiKey)
         {
+            logger.LogWarning("API key validation failed from {RemoteIp} for {Path}",
+                context.Connection.RemoteIpAddress, context.Request.Path);
             context.Response.StatusCode = 401;
             await context.Response.WriteAsJsonAsync(new { error = "Unauthorized" });
             return;

@@ -58,8 +58,36 @@ public static class DbInitializer
                 AccountType TEXT NOT NULL DEFAULT 'user',
                 AddedAt     TEXT NOT NULL
             );
+
+            CREATE TABLE IF NOT EXISTS WatchedRepos (
+                RepoFullName TEXT PRIMARY KEY,
+                AddedAt      TEXT NOT NULL
+            );
         ";
         cmd.ExecuteNonQuery();
+
+        // Idempotent column migrations for CiStatuses table
+        var ciColumns = conn
+            .Query<string>("SELECT name FROM pragma_table_info('CiStatuses')")
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var ciColumnsToAdd = new Dictionary<string, string>
+        {
+            ["OpenPrCount"]       = "INTEGER",
+            ["LastPushedAt"]      = "TEXT",
+            ["DefaultBranch"]     = "TEXT",
+            ["LastCommitMessage"] = "TEXT"
+        };
+
+        foreach (var (col, type) in ciColumnsToAdd)
+        {
+            if (!ciColumns.Contains(col))
+            {
+                var alter = conn.CreateCommand();
+                alter.CommandText = $"ALTER TABLE CiStatuses ADD COLUMN {col} {type}";
+                alter.ExecuteNonQuery();
+            }
+        }
 
         // Idempotent column migrations for Notes table
         var existingColumns = conn

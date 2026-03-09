@@ -6,14 +6,7 @@ export const routes: Routes = [
     path: '',
     component: ShellComponent,
     children: [
-      { path: '', redirectTo: 'links', pathMatch: 'full' },
-      {
-        path: 'links',
-        title: 'Links — Nexus',
-        loadComponent: () =>
-          import('./features/quick-links/quick-links-dashboard/quick-links-dashboard.component')
-            .then(m => m.QuickLinksDashboardComponent)
-      },
+      { path: '', redirectTo: 'hub', pathMatch: 'full' },
       {
         path: 'hub',
         title: 'Hub — Nexus',

@@ -1,18 +1,9 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { marked } from 'marked';
 import { NotesService } from '../../core/api/notes.service';
-import { QuickLinksService } from '../../core/api/quick-links.service';
 import { Note, parseTags } from '../../core/models/note.model';
-import { QuickLink } from '../../core/models/quick-link.model';
-
-interface NoteWithLink extends Note {
-  linkName: string;
-  linkUrl: string;
-  linkCategory: string;
-}
 
 @Component({
   selector: 'app-notes',
@@ -151,14 +142,6 @@ interface NoteWithLink extends Note {
                     <span style="font-size:0.72rem;color:var(--text-dim);">{{ note.createdAt | date:'MMM d · h:mm a' }}</span>
                     @if (note.updatedAt && note.updatedAt !== note.createdAt) {
                       <span style="font-size:0.68rem;color:var(--text-dim);font-style:italic;">edited</span>
-                    }
-                    @if (note.linkName) {
-                      <a [href]="note.linkUrl" target="_blank" rel="noopener noreferrer"
-                         (click)="$event.stopPropagation()"
-                         style="font-size:0.68rem;color:var(--text-dim);text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px;"
-                         [title]="note.linkName">
-                        ↗ {{ note.linkName }}
-                      </a>
                     }
                   </div>
                 </div>
@@ -326,12 +309,11 @@ interface NoteWithLink extends Note {
 })
 export class NotesComponent implements OnInit {
   private notesSvc = inject(NotesService);
-  private linksSvc = inject(QuickLinksService);
-  private sanitizer = inject(DomSanitizer);
+
 
   loading = signal(true);
   error = signal<string | null>(null);
-  allNotes = signal<NoteWithLink[]>([]);
+  allNotes = signal<Note[]>([]);
   activeView = signal<'active' | 'archive'>('active');
 
   searchQuery = '';
@@ -347,7 +329,6 @@ export class NotesComponent implements OnInit {
     const q = this.searchQuery.toLowerCase();
     const tag = this.activeTag();
     const cat = this.activeCategory();
-
     return this.allNotes().filter(n => {
       if (q && !n.body.toLowerCase().includes(q) && !(n.title ?? '').toLowerCase().includes(q)) return false;
       if (tag && !parseTags(n.tags).includes(tag)) return false;
@@ -377,38 +358,12 @@ export class NotesComponent implements OnInit {
 
   private load() {
     this.loading.set(true);
-    let rawNotes: Note[] = [];
-    let links: QuickLink[] = [];
-    let pending = 2;
-
-    const tryMerge = () => {
-      if (--pending > 0) return;
-      const linkMap = new Map(links.map(l => [l.id, l]));
-      const merged: NoteWithLink[] = rawNotes.map(n => {
-        const link = n.quickLinkId ? linkMap.get(n.quickLinkId) : undefined;
-        return {
-          ...n,
-          linkName: link?.name ?? '',
-          linkUrl: link?.url ?? '#',
-          linkCategory: link?.category ?? ''
-        };
-      });
-      this.allNotes.set(merged);
-      this.loading.set(false);
-    };
-
-    const notesObs = this.activeView() === 'archive'
+    const obs = this.activeView() === 'archive'
       ? this.notesSvc.getArchivedNotes()
       : this.notesSvc.getAllNotes();
-
-    notesObs.subscribe({
-      next: data => { rawNotes = data; tryMerge(); },
+    obs.subscribe({
+      next: data => { this.allNotes.set(data); this.loading.set(false); },
       error: () => { this.error.set('Could not load notes.'); this.loading.set(false); }
-    });
-
-    this.linksSvc.getAll().subscribe({
-      next: data => { links = data; tryMerge(); },
-      error: () => { links = []; tryMerge(); }
     });
   }
 
@@ -426,7 +381,7 @@ export class NotesComponent implements OnInit {
     this.activeCategory.set(null);
   }
 
-  startEdit(note: NoteWithLink) {
+  startEdit(note: Note) {
     this.editingNoteId.set(note.id);
     this.editTitle = note.title ?? '';
     this.editBody = note.body;
@@ -437,7 +392,7 @@ export class NotesComponent implements OnInit {
     this.editingNoteId.set(null);
   }
 
-  saveEdit(note: NoteWithLink) {
+  saveEdit(note: Note) {
     const body = this.editBody.trim();
     if (!body) return;
 
@@ -449,12 +404,7 @@ export class NotesComponent implements OnInit {
       clientName: note.clientName
     }).subscribe({
       next: updated => {
-        this.allNotes.update(notes =>
-          notes.map(n => n.id === updated.id
-            ? { ...n, ...updated, linkName: n.linkName, linkUrl: n.linkUrl, linkCategory: n.linkCategory }
-            : n
-          )
-        );
+        this.allNotes.update(notes => notes.map(n => n.id === updated.id ? { ...n, ...updated } : n));
         this.editingNoteId.set(null);
       }
     });
@@ -482,8 +432,7 @@ export class NotesComponent implements OnInit {
     return parseTags(note.tags);
   }
 
-  renderMarkdown(body: string): SafeHtml {
-    const html = marked.parse(body, { async: false }) as string;
-    return this.sanitizer.bypassSecurityTrustHtml(html);
+  renderMarkdown(body: string): string {
+    return marked.parse(body, { async: false }) as string;
   }
 }

@@ -7,18 +7,20 @@ public class CiStatusDto
     public string? Branch { get; set; }
     public string? RunUrl { get; set; }
     public DateTime UpdatedAt { get; set; }
-    public string? SourceAccount { get; set; }
+    public int? OpenPrCount { get; set; }
+    public DateTime? LastPushedAt { get; set; }
+    public string? DefaultBranch { get; set; }
+    public string? LastCommitMessage { get; set; }
 }
 
-public class WatchedAccountDto
+public class WatchedRepoDto
 {
-    public string AccountName { get; set; } = string.Empty;
-    public string AccountType { get; set; } = "user";
+    public string RepoFullName { get; set; } = string.Empty;
     public DateTime AddedAt { get; set; }
 }
 
-public class AddWatchedAccountRequest
+public class AddWatchedRepoRequest
 {
-    public string AccountName { get; set; } = string.Empty;
-    public string AccountType { get; set; } = "user";
+    /// <summary>Full GitHub URL (https://github.com/owner/repo) or owner/repo shorthand.</summary>
+    public string RepoUrl { get; set; } = string.Empty;
 }

@@ -9,14 +9,6 @@ import { GithubPanelComponent } from '../../panels/github/github-panel.component
   standalone: true,
   imports: [GmailPanelComponent, ChatPanelComponent, CalendarPanelComponent, GithubPanelComponent],
   template: `
-    <!-- Briefing placeholder -->
-    <div class="card mb-3 p-3" style="border-left:3px solid var(--accent);">
-      <div class="d-flex align-items-center gap-2" style="color:var(--text-dim);font-size:0.875rem;">
-        <i class="bi bi-stars" style="color:var(--accent);"></i>
-        AI Briefing — coming in Phase 6
-      </div>
-    </div>
-
     <div class="row g-3">
       <!-- Gmail -->
       <div class="col-12 col-lg-4">

@@ -13,15 +13,18 @@ public class GoogleAuthController : ControllerBase
     private readonly GoogleAuthService _auth;
     private readonly AppConfigRepository _config;
     private readonly NexusOptions _options;
+    private readonly ILogger<GoogleAuthController> _logger;
 
     public GoogleAuthController(
         GoogleAuthService auth,
         AppConfigRepository config,
-        IOptions<NexusOptions> options)
+        IOptions<NexusOptions> options,
+        ILogger<GoogleAuthController> logger)
     {
         _auth = auth;
         _config = config;
         _options = options.Value;
+        _logger = logger;
     }
 
     [HttpGet("start")]
@@ -48,7 +51,8 @@ public class GoogleAuthController : ControllerBase
         }
         catch (Exception ex)
         {
-            return Redirect($"{_options.NexusFrontendUrl.TrimEnd('/')}/settings?google=error&message={Uri.EscapeDataString(ex.Message)}");
+            _logger.LogError(ex, "Google OAuth token exchange failed");
+            return Redirect($"{_options.NexusFrontendUrl.TrimEnd('/')}/settings?google=error");
         }
 
         return Redirect($"{_options.NexusFrontendUrl.TrimEnd('/')}/settings?google=connected");

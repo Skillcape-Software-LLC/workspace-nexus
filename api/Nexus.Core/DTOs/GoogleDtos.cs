@@ -37,3 +37,19 @@ public class ChatMessageDto
     public string Text { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
 }
+
+public class ThreadMessageDto
+{
+    public string Id { get; set; } = string.Empty;
+    public string From { get; set; } = string.Empty;
+    public DateTime SentAt { get; set; }
+    public string? BodyHtml { get; set; }
+    public string? BodyText { get; set; }
+}
+
+public class ThreadDetailDto
+{
+    public string ThreadId { get; set; } = string.Empty;
+    public string Subject { get; set; } = string.Empty;
+    public List<ThreadMessageDto> Messages { get; set; } = new();
+}

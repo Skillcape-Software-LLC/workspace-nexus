@@ -1,127 +1,205 @@
 # Nexus
 
-A self-hosted unified dashboard for software engineers and small business owners. Nexus brings your GitHub CI status, Google Workspace (Gmail, Calendar, Chat), and project notes into a single dark-themed interface — zero cloud accounts required beyond your own.
+A self-hosted dashboard that brings GitHub CI, Google Workspace, and project notes into one dark-themed interface. Run it on your own hardware with Docker — no cloud accounts required beyond your own.
 
 > **Screenshot placeholder** — add `docs/screenshot.png` after first deployment.
 
----
+## What you get
 
-## Features
+| Panel | What it shows |
+|-------|---------------|
+| **Gmail** | Latest inbox threads with snippet previews |
+| **Google Calendar** | Upcoming events for the next 7 days |
+| **Google Chat** | Spaces with unread message counts |
+| **GitHub CI** | Workflow run status for watched repos |
+| **Notes** | Markdown notes with tags, search, and archive |
+| **Settings** | Connect/disconnect integrations, manage watched repos |
 
-- **Quick Links** — bookmark any URL as a card, grouped by category, drag-and-drop reordered. Repo links show live CI status badges.
-- **GitHub CI Monitoring** — track workflow run status across individual repos or entire GitHub accounts/orgs via webhook + polling.
-- **Google Workspace Hub** — read-only Gmail inbox, Google Calendar events, and Google Chat spaces via OAuth 2.0 user consent.
-- **Project Notes** — append-only markdown notes scoped to any Quick Link card, shared across all users of the instance.
-- **Settings & Health** — display name, watched GitHub accounts, and integration status at a glance.
-
----
-
-## Prerequisites
-
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (or Docker + Docker Compose CLI)
-- Google account *(optional — app runs without it; no admin/Workspace required)*
-- GitHub account *(optional — CI features require a PAT and webhook)*
-- Claude API key *(optional — reserved for the AI briefing feature on the roadmap)*
+Every integration is optional. Panels degrade gracefully when not configured — the app is usable from day one with zero setup beyond Docker.
 
 ---
 
-## Quick Start
+## Quick start (2 minutes)
+
+**You need:** [Docker Desktop](https://www.docker.com/products/docker-desktop/) (or Docker Engine + Compose plugin)
 
 ```bash
-git clone https://github.com/your-org/nexus.git
-cd nexus
+# Download the compose file and env template
+curl -O https://raw.githubusercontent.com/chad-hollenbeck/nexus/master/docker-compose.prod.yml
+curl -O https://raw.githubusercontent.com/chad-hollenbeck/nexus/master/.env.example
+mv docker-compose.prod.yml docker-compose.yml
 cp .env.example .env
-# Edit .env with your values (see Environment Variables below)
 docker compose up -d
-# Open http://localhost:4100
 ```
 
-The app starts immediately. Google, GitHub, and AI panels degrade gracefully when not configured.
+Open **http://localhost:4100** — you'll see the Hub with empty panels and a working Notes page.
+
+That's it. Everything below is optional.
+
+> **Building from source?** Clone the repo and run `docker compose up -d` instead — the default `docker-compose.yml` builds locally.
 
 ---
 
-## Google OAuth Setup
+## Adding integrations
 
-Required for Gmail, Calendar, and Chat panels. Uses standard OAuth 2.0 user consent — no Workspace admin or service account needed.
+### Google (Gmail, Calendar, Chat)
 
-1. Go to [Google Cloud Console](https://console.cloud.google.com/) and create (or select) a project.
-2. Enable these APIs under **APIs & Services → Library**:
+<details>
+<summary>Click to expand setup steps</summary>
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/) and create or select a project.
+2. Enable three APIs under **APIs & Services > Library**:
    - Gmail API
    - Google Calendar API
    - Google Chat API
-3. Go to **APIs & Services → Credentials → Create Credentials → OAuth 2.0 Client ID**.
+3. Go to **APIs & Services > Credentials > Create Credentials > OAuth 2.0 Client ID**.
    - Application type: **Web application**
-   - Add an **Authorized redirect URI**: `{NEXUS_BASE_URL}/api/google/auth/callback`
-     - Local default: `http://localhost:5100/api/google/auth/callback`
-4. Copy the **Client ID** and **Client Secret** into your `.env`.
-5. Start Nexus, navigate to **Settings → Google Account**, and click **Connect Google Account**.
-6. Grant consent — you'll be redirected back to Settings with the account shown as connected.
+   - Authorized redirect URI: `http://localhost:4100/api/google/auth/callback`
+     *(replace `localhost:4100` with your actual `NEXUS_BASE_URL` if deployed elsewhere)*
+4. Copy the **Client ID** and **Client Secret** into your `.env`:
+   ```
+   GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
+   GOOGLE_CLIENT_SECRET=GOCSPX-your-secret
+   ```
+5. Restart: `docker compose up -d`
+6. In Nexus, go to **Settings > Google Account** and click **Connect Google Account**.
+7. Grant consent in the Google popup — done.
 
-Tokens are stored in the local SQLite database and auto-refreshed. To disconnect, click **Disconnect** in Settings.
+Tokens are stored locally in SQLite and auto-refresh. Disconnect anytime from Settings.
 
----
+> **Note:** No Google Workspace admin or service account is needed. Standard OAuth 2.0 user consent works with any Google account.
+</details>
 
-## GitHub Webhook Setup
+### GitHub CI monitoring
 
-Required for real-time CI status updates on repo Quick Link cards.
+<details>
+<summary>Click to expand setup steps</summary>
 
-1. In your GitHub repository (or organization), go to **Settings → Webhooks → Add webhook**.
+1. Go to [github.com/settings/developers](https://github.com/settings/developers) > **OAuth Apps** > **New OAuth App**.
+2. Fill in:
+   - **Application name:** `Nexus`
+   - **Homepage URL:** `http://localhost:4100`
+   - **Authorization callback URL:** `http://localhost:4100/api/github/oauth/callback`
+     *(replace with your actual URLs if deployed elsewhere)*
+3. Click **Register application**, then **Generate a new client secret**.
+4. Copy both values into your `.env`:
+   ```
+   GITHUB_CLIENT_ID=Ov23li...
+   GITHUB_CLIENT_SECRET=abc123...
+   ```
+5. Restart: `docker compose up -d`
+6. In Nexus, go to **Settings > GitHub Account** and click **Connect GitHub Account**.
+7. Authorize on GitHub — done.
+
+Once connected, add repos to watch from the Settings page. Nexus polls GitHub for CI status every 5 minutes (configurable via `CI_POLLING_INTERVAL_MINUTES`).
+
+> **Fallback:** You can set `GITHUB_PAT` in `.env` to use a Personal Access Token instead of OAuth. The OAuth token takes priority when both are present.
+</details>
+
+### GitHub webhooks (real-time CI updates)
+
+<details>
+<summary>Click to expand setup steps</summary>
+
+Polling works out of the box. Webhooks are optional but give you instant CI status updates.
+
+1. In your GitHub repo or org, go to **Settings > Webhooks > Add webhook**.
 2. Set:
-   - **Payload URL**: `http://your-host:5000/api/github/webhook`
-   - **Content type**: `application/json`
-   - **Secret**: any random string — copy it to `GITHUB_WEBHOOK_SECRET` in `.env`
-   - **Events**: select **"Workflow runs"** only
-3. Set `GITHUB_PAT` in `.env` to a personal access token with `repo` (read) scope for polling fallback and account-level monitoring.
+   - **Payload URL:** `https://your-host/api/github/webhook`
+   - **Content type:** `application/json`
+   - **Secret:** generate a random string, then add it to `.env`:
+     ```
+     GITHUB_WEBHOOK_SECRET=your-random-secret
+     ```
+   - **Events:** select **Workflow runs** only
+3. Restart: `docker compose up -d`
+
+If `GITHUB_WEBHOOK_SECRET` is not set, Nexus logs a warning and accepts webhooks without signature verification.
+</details>
 
 ---
 
-## Environment Variables
+## Environment variables
 
-| Variable | Required | Description | Example |
-|---|---|---|---|
-| `DATABASE_PATH` | No | SQLite file path inside container | `/app/data/nexus.db` |
-| `API_KEY` | No | Enables `X-API-Key` header auth on all endpoints. Leave blank to disable. | `mysecretkey` |
-| `GOOGLE_CLIENT_ID` | For Google panels | OAuth 2.0 Client ID from Google Cloud Console | `123....apps.googleusercontent.com` |
-| `GOOGLE_CLIENT_SECRET` | For Google panels | OAuth 2.0 Client Secret | `GOCSPX-...` |
-| `NEXUS_BASE_URL` | For Google OAuth | Public base URL of the API (must match the redirect URI in Google Cloud Console) | `http://localhost:5100` |
-| `NEXUS_FRONTEND_URL` | For Google OAuth | Public base URL of the frontend (post-auth redirect target) | `http://localhost:4100` |
-| `GITHUB_PAT` | For GitHub features | Personal Access Token (`repo` read scope) | `ghp_...` |
-| `GITHUB_WEBHOOK_SECRET` | For webhooks | HMAC secret matching your GitHub webhook config | `randomstring` |
-| `CI_POLLING_INTERVAL_MINUTES` | No | How often to poll GitHub for CI updates | `5` |
-| `CLAUDE_API_KEY` | No | Anthropic Claude API key (roadmap: AI briefing) | `sk-ant-...` |
-| `BRIEFING_SCHEDULE` | No | Cron schedule for daily briefing generation | `30 7 * * *` |
+All config lives in `.env`. See [`.env.example`](.env.example) for the full template with comments.
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `DATABASE_PATH` | `/app/data/nexus.db` | SQLite file path inside container |
+| `API_KEY` | *(empty)* | If set, all API requests require `X-API-Key` header |
+| `NEXUS_BASE_URL` | `http://localhost:4100` | Base URL for OAuth redirect URIs |
+| `NEXUS_FRONTEND_URL` | `http://localhost:4100` | Frontend URL (used for CORS and post-auth redirects) |
+| `GOOGLE_CLIENT_ID` | | Google OAuth Client ID |
+| `GOOGLE_CLIENT_SECRET` | | Google OAuth Client Secret |
+| `GITHUB_CLIENT_ID` | | GitHub OAuth App Client ID |
+| `GITHUB_CLIENT_SECRET` | | GitHub OAuth App Client Secret |
+| `GITHUB_PAT` | | Personal Access Token (fallback if OAuth not configured) |
+| `GITHUB_WEBHOOK_SECRET` | | HMAC secret for webhook signature verification |
+| `CI_POLLING_INTERVAL_MINUTES` | `5` | GitHub CI polling frequency |
+| `CLAUDE_API_KEY` | | Anthropic API key (roadmap: AI briefing) |
+| `BRIEFING_SCHEDULE` | `30 7 * * *` | Cron schedule for briefing generation |
 
 ---
 
-## Development Setup
+## Deploying to a server
+
+Use the pre-built images (no cloning required):
 
 ```bash
-# Start with source mounts for live reload
+# On your server
+mkdir nexus && cd nexus
+curl -O https://raw.githubusercontent.com/chad-hollenbeck/nexus/master/docker-compose.prod.yml
+curl -O https://raw.githubusercontent.com/chad-hollenbeck/nexus/master/.env.example
+mv docker-compose.prod.yml docker-compose.yml
+cp .env.example .env
+# Edit .env — set NEXUS_BASE_URL and NEXUS_FRONTEND_URL to your domain
+docker compose up -d
+```
+
+**How it works:** All traffic goes through port `4100` (the web container). Its built-in nginx proxies `/api/` requests — including OAuth callbacks — to the API container internally. You only need to expose one port.
+
+**Reverse proxy (production):** Point a single domain at port `4100` and set both env vars to match:
+
+```env
+NEXUS_BASE_URL=https://nexus.example.com
+NEXUS_FRONTEND_URL=https://nexus.example.com
+```
+
+No subdomains or extra routing rules needed.
+
+> Port `5100` (direct API access) is also exposed for debugging but isn't required for normal operation.
+
+**Data persistence:** SQLite lives in `./data/` on the host (mounted as a volume). Back up this directory to preserve all data.
+
+---
+
+## Development
+
+```bash
+# Run both services with dev settings (Swagger UI enabled, hot reload ports)
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up
 
-# Or run services individually:
+# Or run individually:
 
 # API (from api/)
 dotnet run --project Nexus.API
 
-# Frontend (from web/)
+# Frontend (from web/ — always use yarn, not npm)
 yarn install
-yarn start   # serves at http://localhost:4100 with proxy to API on :5000
+yarn start     # http://localhost:4200, proxies API calls to :5000
 ```
 
 ---
 
 ## Roadmap
 
-- **AI Daily Briefing** — Claude-powered morning briefing summarizing your calendar, unread emails, and Chat activity. Triggered on a cron schedule, cached in SQLite, regeneratable on demand. *(Design complete, implementation deferred.)*
+- **AI Daily Briefing** — Claude-powered summary of your calendar, unread emails, and Chat activity. Cron-triggered, cached in SQLite.
 
 ---
 
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md).
-
----
 
 ## License
 

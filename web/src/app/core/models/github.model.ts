@@ -1,5 +1,9 @@
 export type CiStatusValue = 'Unknown' | 'Passing' | 'Failing' | 'Running';
-export type GitHubAccountType = 'user' | 'org';
+
+export interface GitHubOAuthStatus {
+  connected: boolean;
+  login: string | null;
+}
 
 export interface CiStatus {
   repoFullName: string;
@@ -7,16 +11,17 @@ export interface CiStatus {
   branch: string | null;
   runUrl: string | null;
   updatedAt: string;
-  sourceAccount: string | null;
+  openPrCount: number | null;
+  lastPushedAt: string | null;
+  defaultBranch: string | null;
+  lastCommitMessage: string | null;
 }
 
-export interface WatchedAccount {
-  accountName: string;
-  accountType: GitHubAccountType;
+export interface WatchedRepo {
+  repoFullName: string;
   addedAt: string;
 }
 
-export interface AddWatchedAccountRequest {
-  accountName: string;
-  accountType: GitHubAccountType;
+export interface AddWatchedRepoRequest {
+  repoUrl: string;
 }

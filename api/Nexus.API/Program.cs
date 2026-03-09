@@ -18,6 +18,8 @@ var nexusOptions = new NexusOptions
     NexusBaseUrl = builder.Configuration["NEXUS_BASE_URL"] ?? "http://localhost:5000",
     NexusFrontendUrl = builder.Configuration["NEXUS_FRONTEND_URL"] ?? "http://localhost:4200",
     GitHubPat = builder.Configuration["GITHUB_PAT"],
+    GitHubClientId = builder.Configuration["GITHUB_CLIENT_ID"],
+    GitHubClientSecret = builder.Configuration["GITHUB_CLIENT_SECRET"],
     GitHubWebhookSecret = builder.Configuration["GITHUB_WEBHOOK_SECRET"],
     ClaudeApiKey = builder.Configuration["CLAUDE_API_KEY"],
     BriefingSchedule = builder.Configuration["BRIEFING_SCHEDULE"] ?? "30 7 * * *",
@@ -33,6 +35,8 @@ builder.Services.Configure<NexusOptions>(opt =>
     opt.NexusBaseUrl = nexusOptions.NexusBaseUrl;
     opt.NexusFrontendUrl = nexusOptions.NexusFrontendUrl;
     opt.GitHubPat = nexusOptions.GitHubPat;
+    opt.GitHubClientId = nexusOptions.GitHubClientId;
+    opt.GitHubClientSecret = nexusOptions.GitHubClientSecret;
     opt.GitHubWebhookSecret = nexusOptions.GitHubWebhookSecret;
     opt.ClaudeApiKey = nexusOptions.ClaudeApiKey;
     opt.BriefingSchedule = nexusOptions.BriefingSchedule;
@@ -56,9 +60,13 @@ builder.Services.AddScoped<AppConfigRepository>(_ => new AppConfigRepository(con
 
 // GitHub repositories + service + polling
 builder.Services.AddScoped<ICiStatusRepository>(_ => new CiStatusRepository(connectionString));
-builder.Services.AddScoped<IWatchedAccountRepository>(_ => new WatchedAccountRepository(connectionString));
-builder.Services.AddSingleton<GitHubService>();
-builder.Services.AddHostedService<CiPollingService>();
+builder.Services.AddScoped<IWatchedRepoRepository>(_ => new WatchedRepoRepository(connectionString));
+builder.Services.AddScoped<GitHubService>(_ =>
+    new GitHubService(_.GetRequiredService<IOptions<NexusOptions>>(),
+                      _.GetRequiredService<ILogger<GitHubService>>(),
+                      connectionString));
+builder.Services.AddSingleton<CiPollingService>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<CiPollingService>());
 
 // Google services
 builder.Services.AddScoped<GoogleAuthService>(_ =>
@@ -77,9 +85,15 @@ builder.Services.AddSwaggerGen();
 // CORS
 builder.Services.AddCors(opt =>
     opt.AddDefaultPolicy(policy =>
-        policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader()));
+        policy.WithOrigins(nexusOptions.NexusFrontendUrl.TrimEnd('/'))
+              .AllowAnyMethod()
+              .AllowAnyHeader()
+              .AllowCredentials()));
 
 var app = builder.Build();
+
+if (string.IsNullOrEmpty(nexusOptions.GitHubWebhookSecret))
+    app.Logger.LogWarning("GITHUB_WEBHOOK_SECRET is not set — webhook signature verification disabled.");
 
 if (app.Environment.IsDevelopment())
 {

@@ -26,7 +26,6 @@ public class CiPollingService : BackgroundService
     {
         _logger.LogInformation("CI polling service started. Interval: {Mins} minutes.", _intervalMinutes);
 
-        // Initial poll on startup
         await PollAllAsync();
 
         while (!stoppingToken.IsCancellationRequested)
@@ -43,60 +42,71 @@ public class CiPollingService : BackgroundService
         }
     }
 
+    public async Task PollNowAsync() => await PollAllAsync();
+
     private async Task PollAllAsync()
     {
         using var scope = _scopeFactory.CreateScope();
         var svc = scope.ServiceProvider.GetRequiredService<GitHubService>();
-        var watchedRepo = scope.ServiceProvider.GetRequiredService<IWatchedAccountRepository>();
-        var quickLinksRepo = scope.ServiceProvider.GetRequiredService<IQuickLinksRepository>();
+        var watchedRepo = scope.ServiceProvider.GetRequiredService<IWatchedRepoRepository>();
         var ciRepo = scope.ServiceProvider.GetRequiredService<ICiStatusRepository>();
 
-        if (!svc.IsConfigured)
+        if (!await svc.IsConfiguredAsync())
         {
-            _logger.LogDebug("GitHub PAT not configured — skipping CI poll.");
+            _logger.LogDebug("GitHub not configured — skipping CI poll.");
             return;
         }
 
-        _logger.LogInformation("Starting CI poll.");
-        int updated = 0;
-
-        // 1. Poll all watched accounts
-        var accounts = await watchedRepo.GetAllAsync();
-        var coveredRepos = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-        foreach (var account in accounts)
+        // Auto-discover repos from the OAuth token (user + any granted orgs)
+        var accessible = await svc.GetAllAccessibleReposAsync();
+        foreach (var discovered in accessible)
         {
-            var repos = await svc.GetReposForAccountAsync(account.AccountName, account.AccountType);
-            foreach (var fullName in repos)
+            var existing = await watchedRepo.GetByFullNameAsync(discovered.FullName);
+            if (existing == null)
             {
-                coveredRepos.Add(fullName);
-                var parts = fullName.Split('/', 2);
-                if (parts.Length != 2) continue;
-
-                var status = await svc.GetLatestRunAsync(parts[0], parts[1]);
-                if (status != null)
+                await watchedRepo.AddAsync(new Nexus.Core.Models.WatchedRepo
                 {
-                    await ciRepo.UpsertAsync(status);
-                    updated++;
-                }
+                    RepoFullName = discovered.FullName,
+                    AddedAt = DateTime.UtcNow
+                });
+                _logger.LogInformation("Auto-discovered repo: {Repo}", discovered.FullName);
             }
         }
 
-        // 2. Poll individual IsRepo quick links not already covered by a watched account
-        var allLinks = await quickLinksRepo.GetAllAsync();
-        var repoLinks = allLinks.Where(l => l.IsRepo && !string.IsNullOrEmpty(l.RepoOwner) && !string.IsNullOrEmpty(l.RepoName));
-
-        foreach (var link in repoLinks)
+        var repos = await watchedRepo.GetAllAsync();
+        if (repos.Count == 0)
         {
-            var fullName = $"{link.RepoOwner}/{link.RepoName}";
-            if (coveredRepos.Contains(fullName)) continue;
+            _logger.LogDebug("No watched repos — skipping CI poll.");
+            return;
+        }
 
-            var status = await svc.GetLatestRunAsync(link.RepoOwner!, link.RepoName!);
-            if (status != null)
+        _logger.LogInformation("Starting CI poll for {Count} repos.", repos.Count);
+        int updated = 0;
+
+        foreach (var watched in repos)
+        {
+            var parts = watched.RepoFullName.Split('/', 2);
+            if (parts.Length != 2) continue;
+
+            var (owner, repo) = (parts[0], parts[1]);
+
+            var meta = await svc.GetRepoMetaAsync(owner, repo);
+            var status = await svc.GetLatestRunAsync(owner, repo) ?? new Nexus.Core.Models.CiStatus
             {
-                await ciRepo.UpsertAsync(status);
-                updated++;
-            }
+                RepoFullName = watched.RepoFullName,
+                Status       = Nexus.Core.Models.CiStatusValue.Unknown,
+                UpdatedAt    = DateTime.UtcNow
+            };
+
+            status.OpenPrCount   = await svc.GetOpenPrCountAsync(owner, repo);
+            status.LastPushedAt  = meta?.LastPushedAt?.UtcDateTime;
+            status.DefaultBranch = meta.HasValue ? meta.Value.DefaultBranch : null;
+
+            if (meta.HasValue && !string.IsNullOrEmpty(meta.Value.DefaultBranch))
+                status.LastCommitMessage = await svc.GetLatestCommitMessageAsync(owner, repo, meta.Value.DefaultBranch);
+
+            await ciRepo.UpsertAsync(status);
+            updated++;
         }
 
         _logger.LogInformation("CI poll complete. Updated {Count} repos.", updated);

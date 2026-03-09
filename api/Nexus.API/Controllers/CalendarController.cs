@@ -8,12 +8,18 @@ namespace Nexus.API.Controllers;
 public class CalendarController : ControllerBase
 {
     private readonly CalendarService _calendar;
+    private readonly ILogger<CalendarController> _logger;
 
-    public CalendarController(CalendarService calendar) => _calendar = calendar;
+    public CalendarController(CalendarService calendar, ILogger<CalendarController> logger)
+    {
+        _calendar = calendar;
+        _logger = logger;
+    }
 
     [HttpGet("events")]
     public async Task<IActionResult> GetEvents([FromQuery] int days = 7)
     {
+        days = Math.Clamp(days, 1, 90);
         try
         {
             var result = await _calendar.GetUpcomingEventsAsync(days);
@@ -23,7 +29,8 @@ public class CalendarController : ControllerBase
         }
         catch (Exception ex)
         {
-            return StatusCode(502, new { error = $"Calendar API error: {ex.Message}" });
+            _logger.LogError(ex, "Calendar API error");
+            return StatusCode(502, new { error = "Failed to reach Google Calendar. Check server logs." });
         }
     }
 }

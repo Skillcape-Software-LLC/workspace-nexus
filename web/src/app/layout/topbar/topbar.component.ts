@@ -83,7 +83,6 @@ export class TopbarComponent implements OnInit, OnDestroy {
 
   navLinks = [
     { path: '/hub',      label: 'Hub' },
-    { path: '/links',    label: 'Links' },
     { path: '/notes',    label: 'Notes' },
     { path: '/settings', label: 'Settings' }
   ];

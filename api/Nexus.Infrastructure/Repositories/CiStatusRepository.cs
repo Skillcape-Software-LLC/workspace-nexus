@@ -35,30 +35,42 @@ public class CiStatusRepository : ICiStatusRepository
     {
         using var conn = Connect();
         await conn.ExecuteAsync(@"
-            INSERT INTO CiStatuses (RepoFullName, Status, Branch, RunUrl, UpdatedAt)
-            VALUES (@RepoFullName, @Status, @Branch, @RunUrl, @UpdatedAt)
+            INSERT INTO CiStatuses (RepoFullName, Status, Branch, RunUrl, UpdatedAt, OpenPrCount, LastPushedAt, DefaultBranch, LastCommitMessage)
+            VALUES (@RepoFullName, @Status, @Branch, @RunUrl, @UpdatedAt, @OpenPrCount, @LastPushedAt, @DefaultBranch, @LastCommitMessage)
             ON CONFLICT(RepoFullName) DO UPDATE SET
-                Status    = excluded.Status,
-                Branch    = excluded.Branch,
-                RunUrl    = excluded.RunUrl,
-                UpdatedAt = excluded.UpdatedAt",
+                Status            = excluded.Status,
+                Branch            = excluded.Branch,
+                RunUrl            = excluded.RunUrl,
+                UpdatedAt         = excluded.UpdatedAt,
+                OpenPrCount       = excluded.OpenPrCount,
+                LastPushedAt      = excluded.LastPushedAt,
+                DefaultBranch     = excluded.DefaultBranch,
+                LastCommitMessage = excluded.LastCommitMessage",
             new
             {
                 status.RepoFullName,
                 Status = status.Status.ToString(),
                 status.Branch,
                 status.RunUrl,
-                UpdatedAt = status.UpdatedAt.ToString("o")
+                UpdatedAt = status.UpdatedAt.ToString("o"),
+                status.OpenPrCount,
+                LastPushedAt = status.LastPushedAt?.ToString("o"),
+                status.DefaultBranch,
+                status.LastCommitMessage
             });
     }
 
     private static CiStatus ToModel(CiStatusRow r) => new()
     {
-        RepoFullName = r.RepoFullName,
-        Status = Enum.TryParse<CiStatusValue>(r.Status, out var s) ? s : CiStatusValue.Unknown,
-        Branch = r.Branch,
-        RunUrl = r.RunUrl,
-        UpdatedAt = DateTime.Parse(r.UpdatedAt)
+        RepoFullName      = r.RepoFullName,
+        Status            = Enum.TryParse<CiStatusValue>(r.Status, out var s) ? s : CiStatusValue.Unknown,
+        Branch            = r.Branch,
+        RunUrl            = r.RunUrl,
+        UpdatedAt         = DateTime.Parse(r.UpdatedAt),
+        OpenPrCount       = r.OpenPrCount,
+        LastPushedAt      = r.LastPushedAt == null ? null : DateTime.Parse(r.LastPushedAt),
+        DefaultBranch     = r.DefaultBranch,
+        LastCommitMessage = r.LastCommitMessage
     };
 
     private class CiStatusRow
@@ -68,5 +80,9 @@ public class CiStatusRepository : ICiStatusRepository
         public string? Branch { get; set; }
         public string? RunUrl { get; set; }
         public string UpdatedAt { get; set; } = "";
+        public int? OpenPrCount { get; set; }
+        public string? LastPushedAt { get; set; }
+        public string? DefaultBranch { get; set; }
+        public string? LastCommitMessage { get; set; }
     }
 }
