@@ -1,5 +1,5 @@
 export const environment = {
   production: true,
-  apiBaseUrl: 'http://nexus-api:5000',
+  apiBaseUrl: 'http://localhost:5100',
   apiKey: ''
 };

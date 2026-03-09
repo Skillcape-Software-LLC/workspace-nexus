@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, signal } from '@angular/core';
+import { Component, EventEmitter, OnDestroy, OnInit, Output, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { CommonModule } from '@angular/common';
 
@@ -30,6 +30,20 @@ import { CommonModule } from '@angular/common';
       </ul>
 
       <div class="d-flex align-items-center gap-3">
+        <button (click)="newNoteClicked.emit()" title="New note (Alt+N)"
+                class="new-note-btn"
+                style="
+                  background:var(--bg-raised);border:1px solid var(--border);
+                  border-radius:6px;padding:0.3rem 0.6rem;
+                  color:var(--text-dim);cursor:pointer;display:flex;align-items:center;gap:0.35rem;
+                  font-size:0.78rem;font-family:var(--font-body);">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>
+            <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5v11z"/>
+          </svg>
+          Note
+        </button>
+
         <div class="d-flex align-items-center gap-2">
           <span class="status-dot" [class.online]="true"
                 style="width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);animation:pulse 2s infinite;"></span>
@@ -47,10 +61,23 @@ import { CommonModule } from '@angular/common';
         0%, 100% { opacity: 1; }
         50% { opacity: 0.4; }
       }
+      .nav-link.active {
+        color: var(--accent) !important;
+        border-bottom: 2px solid var(--accent);
+        padding-bottom: 2px;
+      }
+      .nav-link:not(.active):hover {
+        color: var(--text-primary) !important;
+        background: var(--bg-hover);
+      }
+      .new-note-btn { transition: border-color .15s, color .15s; }
+      .new-note-btn:hover { border-color: var(--accent) !important; color: var(--accent) !important; }
     </style>
   `
 })
 export class TopbarComponent implements OnInit, OnDestroy {
+  @Output() newNoteClicked = new EventEmitter<void>();
+
   clock = signal('');
   private timer?: ReturnType<typeof setInterval>;
 

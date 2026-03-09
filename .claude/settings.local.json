@@ -11,7 +11,8 @@
       "Bash(ng version:*)",
       "Bash(rm:*)",
       "Bash(pkill:*)",
-      "Bash(taskkill:*)"
+      "Bash(taskkill:*)",
+      "Bash(chmod +x:*)"
     ]
   }
 }

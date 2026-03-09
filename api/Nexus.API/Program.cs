@@ -1,9 +1,9 @@
+using Microsoft.Extensions.Options;
 using Nexus.API.Middleware;
 using Nexus.Core.Interfaces;
 using Nexus.Infrastructure;
 using Nexus.Infrastructure.Database;
 using Nexus.Infrastructure.GoogleServices;
-using Nexus.Core.Interfaces;
 using Nexus.Infrastructure.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -13,8 +13,10 @@ var nexusOptions = new NexusOptions
 {
     DatabasePath = builder.Configuration["DATABASE_PATH"] ?? "/app/data/nexus.db",
     ApiKey = builder.Configuration["API_KEY"],
-    GoogleImpersonateUser = builder.Configuration["GOOGLE_IMPERSONATE_USER"],
-    GoogleCredentialsPath = builder.Configuration["GOOGLE_CREDENTIALS_PATH"],
+    GoogleClientId = builder.Configuration["GOOGLE_CLIENT_ID"],
+    GoogleClientSecret = builder.Configuration["GOOGLE_CLIENT_SECRET"],
+    NexusBaseUrl = builder.Configuration["NEXUS_BASE_URL"] ?? "http://localhost:5000",
+    NexusFrontendUrl = builder.Configuration["NEXUS_FRONTEND_URL"] ?? "http://localhost:4200",
     GitHubPat = builder.Configuration["GITHUB_PAT"],
     GitHubWebhookSecret = builder.Configuration["GITHUB_WEBHOOK_SECRET"],
     ClaudeApiKey = builder.Configuration["CLAUDE_API_KEY"],
@@ -26,8 +28,10 @@ builder.Services.Configure<NexusOptions>(opt =>
 {
     opt.DatabasePath = nexusOptions.DatabasePath;
     opt.ApiKey = nexusOptions.ApiKey;
-    opt.GoogleImpersonateUser = nexusOptions.GoogleImpersonateUser;
-    opt.GoogleCredentialsPath = nexusOptions.GoogleCredentialsPath;
+    opt.GoogleClientId = nexusOptions.GoogleClientId;
+    opt.GoogleClientSecret = nexusOptions.GoogleClientSecret;
+    opt.NexusBaseUrl = nexusOptions.NexusBaseUrl;
+    opt.NexusFrontendUrl = nexusOptions.NexusFrontendUrl;
     opt.GitHubPat = nexusOptions.GitHubPat;
     opt.GitHubWebhookSecret = nexusOptions.GitHubWebhookSecret;
     opt.ClaudeApiKey = nexusOptions.ClaudeApiKey;
@@ -57,7 +61,10 @@ builder.Services.AddSingleton<GitHubService>();
 builder.Services.AddHostedService<CiPollingService>();
 
 // Google services
-builder.Services.AddSingleton<GoogleAuthService>();
+builder.Services.AddScoped<GoogleAuthService>(_ =>
+    new GoogleAuthService(_.GetRequiredService<IOptions<NexusOptions>>(),
+                          _.GetRequiredService<ILogger<GoogleAuthService>>(),
+                          connectionString));
 builder.Services.AddScoped<GmailService>();
 builder.Services.AddScoped<CalendarService>();
 builder.Services.AddScoped<ChatService>();

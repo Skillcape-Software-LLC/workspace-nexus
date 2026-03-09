@@ -61,7 +61,12 @@ const BAR_COLORS = ['var(--blue)', 'var(--accent)', 'var(--green)', 'var(--yello
                     <div class="flex-shrink-0" style="width:44px;font-size:0.68rem;color:var(--text-dim);padding-top:2px;">All day</div>
                   }
                   <div class="flex-grow-1 overflow-hidden">
-                    <div class="text-truncate" style="font-size:0.82rem;font-weight:500;color:var(--text-primary);">{{ event.title }}</div>
+                    @if (event.htmlLink) {
+                      <a [href]="event.htmlLink" target="_blank" rel="noopener"
+                         class="text-truncate d-block" style="font-size:0.82rem;font-weight:500;color:var(--text-primary);text-decoration:none;" (click)="$event.stopPropagation()">{{ event.title }}</a>
+                    } @else {
+                      <div class="text-truncate" style="font-size:0.82rem;font-weight:500;color:var(--text-primary);">{{ event.title }}</div>
+                    }
                     @if (event.attendees.length > 0) {
                       <div class="text-truncate" style="font-size:0.72rem;color:var(--text-secondary);">
                         <i class="bi bi-people me-1"></i>{{ event.attendees.slice(0,3).join(', ') }}{{ event.attendees.length > 3 ? ' +' + (event.attendees.length - 3) : '' }}
@@ -86,6 +91,7 @@ const BAR_COLORS = ['var(--blue)', 'var(--accent)', 'var(--green)', 'var(--yello
       @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
       .spin { animation: spin 0.8s linear infinite; }
       @keyframes spin { to { transform: rotate(360deg); } }
+      a[href]:hover { text-decoration: underline !important; }
     </style>
   `
 })

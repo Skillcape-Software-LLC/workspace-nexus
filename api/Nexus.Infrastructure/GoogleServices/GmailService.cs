@@ -13,8 +13,7 @@ public class GmailService
 
     public async Task<List<EmailSummaryDto>?> GetInboxAsync(int maxResults = 20)
     {
-        var credential = _auth.GetCredential(
-            "https://www.googleapis.com/auth/gmail.readonly");
+        var credential = await _auth.GetCredentialAsync();
         if (credential == null) return null;
 
         var service = new Google.Apis.Gmail.v1.GmailService(new BaseClientService.Initializer

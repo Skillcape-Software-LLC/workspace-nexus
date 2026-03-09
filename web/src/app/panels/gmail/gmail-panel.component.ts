@@ -44,9 +44,11 @@ import { EmailSummary } from '../../core/models/google.model';
         } @else {
           <ul class="list-unstyled mb-0">
             @for (email of emails(); track email.id) {
-              <li class="px-3 py-2 border-bottom"
-                  style="border-color:var(--border) !important;cursor:default;transition:background .1s;"
-                  [style.background]="email.isUnread ? 'var(--bg-raised)' : 'transparent'">
+              <a [href]="'https://mail.google.com/mail/u/0/#inbox/' + email.threadId"
+                 target="_blank" rel="noopener"
+                 class="d-block px-3 py-2 border-bottom email-row"
+                 style="border-color:var(--border) !important;text-decoration:none;transition:background .1s;"
+                 [style.background]="email.isUnread ? 'var(--bg-raised)' : 'transparent'">
                 <div class="d-flex align-items-start gap-2">
                   @if (email.isUnread) {
                     <span style="width:6px;height:6px;border-radius:50%;background:var(--accent);margin-top:5px;flex-shrink:0;"></span>
@@ -67,7 +69,7 @@ import { EmailSummary } from '../../core/models/google.model';
                     </div>
                   </div>
                 </div>
-              </li>
+              </a>
             }
           </ul>
         }
@@ -78,6 +80,7 @@ import { EmailSummary } from '../../core/models/google.model';
       @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
       .spin { animation: spin 0.8s linear infinite; }
       @keyframes spin { to { transform: rotate(360deg); } }
+      .email-row:hover { filter: brightness(1.06); cursor: pointer; }
     </style>
   `
 })

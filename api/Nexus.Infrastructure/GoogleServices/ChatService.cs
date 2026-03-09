@@ -10,26 +10,9 @@ public class ChatService
 
     public ChatService(GoogleAuthService auth) => _auth = auth;
 
-    private HangoutsChatService BuildService()
-    {
-        var credential = _auth.GetCredential(
-            "https://www.googleapis.com/auth/chat.spaces.readonly",
-            "https://www.googleapis.com/auth/chat.messages.readonly");
-
-        if (credential == null) throw new InvalidOperationException("Google credentials not configured.");
-
-        return new HangoutsChatService(new BaseClientService.Initializer
-        {
-            HttpClientInitializer = credential,
-            ApplicationName = "Nexus"
-        });
-    }
-
     public async Task<List<ChatSpaceDto>?> GetSpacesAsync()
     {
-        var credential = _auth.GetCredential(
-            "https://www.googleapis.com/auth/chat.spaces.readonly",
-            "https://www.googleapis.com/auth/chat.messages.readonly");
+        var credential = await _auth.GetCredentialAsync();
         if (credential == null) return null;
 
         var service = new HangoutsChatService(new BaseClientService.Initializer
@@ -53,8 +36,7 @@ public class ChatService
 
     public async Task<List<ChatMessageDto>?> GetRecentMessagesAsync(string spaceName, int maxResults = 10)
     {
-        var credential = _auth.GetCredential(
-            "https://www.googleapis.com/auth/chat.messages.readonly");
+        var credential = await _auth.GetCredentialAsync();
         if (credential == null) return null;
 
         var service = new HangoutsChatService(new BaseClientService.Initializer

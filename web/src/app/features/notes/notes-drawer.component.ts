@@ -65,6 +65,9 @@ import { QuickLink } from '../../core/models/quick-link.model';
                   </div>
                   <div class="d-flex align-items-center gap-2">
                     <span style="font-size:0.7rem;color:var(--text-dim);">{{ note.createdAt | date:'MMM d, h:mm a' }}</span>
+                    @if (note.updatedAt && note.updatedAt !== note.createdAt) {
+                      <span style="font-size:0.65rem;color:var(--text-dim);font-style:italic;">edited</span>
+                    }
                     @if (note.authorName === displayName()) {
                       <button class="btn p-0" style="color:var(--text-dim);line-height:1;" title="Delete"
                               (click)="deleteNote(note.id)">
@@ -73,6 +76,9 @@ import { QuickLink } from '../../core/models/quick-link.model';
                     }
                   </div>
                 </div>
+                @if (note.title) {
+                  <div style="font-size:0.8rem;font-weight:600;color:var(--text-primary);margin-bottom:0.4rem;">{{ note.title }}</div>
+                }
                 <div class="note-body" [innerHTML]="renderMarkdown(note.body)"
                      style="font-size:0.82rem;color:var(--text-secondary);line-height:1.6;"></div>
               </div>
@@ -194,7 +200,7 @@ export class NotesDrawerComponent implements OnInit {
   }
 
   deleteNote(id: string) {
-    this.svc.deleteNote(id).subscribe({
+    this.svc.archiveNote(id).subscribe({
       next: () => {
         this.notes.update(all => all.filter(n => n.id !== id));
         this.notesCountChanged.emit({ quickLinkId: this.link.id, count: this.notes().length });

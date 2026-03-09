@@ -13,8 +13,7 @@ public class CalendarService
 
     public async Task<List<CalendarEventDto>?> GetUpcomingEventsAsync(int days = 7)
     {
-        var credential = _auth.GetCredential(
-            "https://www.googleapis.com/auth/calendar.readonly");
+        var credential = await _auth.GetCredentialAsync();
         if (credential == null) return null;
 
         var service = new Google.Apis.Calendar.v3.CalendarService(new BaseClientService.Initializer
@@ -54,7 +53,8 @@ public class CalendarService
                 EndAt = end,
                 IsAllDay = isAllDay,
                 Attendees = e.Attendees?.Select(a => a.DisplayName ?? a.Email ?? "").ToList() ?? new(),
-                MeetUrl = meetUrl
+                MeetUrl = meetUrl,
+                HtmlLink = e.HtmlLink
             };
         }).ToList();
     }

@@ -14,6 +14,7 @@ export interface CalendarEvent {
   endAt: string | null;
   attendees: string[];
   meetUrl: string | null;
+  htmlLink: string | null;
   isAllDay: boolean;
 }
 

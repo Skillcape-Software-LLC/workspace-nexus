@@ -10,7 +10,7 @@ A self-hosted unified dashboard for software engineers and small business owners
 
 - **Quick Links** — bookmark any URL as a card, grouped by category, drag-and-drop reordered. Repo links show live CI status badges.
 - **GitHub CI Monitoring** — track workflow run status across individual repos or entire GitHub accounts/orgs via webhook + polling.
-- **Google Workspace Hub** — read-only Gmail inbox, Google Calendar events, and Google Chat spaces via service account delegation.
+- **Google Workspace Hub** — read-only Gmail inbox, Google Calendar events, and Google Chat spaces via OAuth 2.0 user consent.
 - **Project Notes** — append-only markdown notes scoped to any Quick Link card, shared across all users of the instance.
 - **Settings & Health** — display name, watched GitHub accounts, and integration status at a glance.
 
@@ -19,7 +19,7 @@ A self-hosted unified dashboard for software engineers and small business owners
 ## Prerequisites
 
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) (or Docker + Docker Compose CLI)
-- Google Workspace account with admin access *(optional — app runs without it)*
+- Google account *(optional — app runs without it; no admin/Workspace required)*
 - GitHub account *(optional — CI features require a PAT and webhook)*
 - Claude API key *(optional — reserved for the AI briefing feature on the roadmap)*
 
@@ -33,36 +33,31 @@ cd nexus
 cp .env.example .env
 # Edit .env with your values (see Environment Variables below)
 docker compose up -d
-# Open http://localhost:4200
+# Open http://localhost:4100
 ```
 
 The app starts immediately. Google, GitHub, and AI panels degrade gracefully when not configured.
 
 ---
 
-## Google Service Account Setup
+## Google OAuth Setup
 
-Required for Gmail, Calendar, and Chat panels.
+Required for Gmail, Calendar, and Chat panels. Uses standard OAuth 2.0 user consent — no Workspace admin or service account needed.
 
-1. Go to [Google Cloud Console](https://console.cloud.google.com/) and create a new project.
-2. Enable the following APIs:
+1. Go to [Google Cloud Console](https://console.cloud.google.com/) and create (or select) a project.
+2. Enable these APIs under **APIs & Services → Library**:
    - Gmail API
    - Google Calendar API
    - Google Chat API
-3. Navigate to **IAM & Admin → Service Accounts** and create a new service account.
-4. Grant the service account **domain-wide delegation**:
-   - Open the service account → **Keys** → **Add Key** → JSON. Save the file.
-   - In the service account details, copy the **Client ID**.
-5. Go to **Google Workspace Admin** → **Security → API Controls → Domain-wide Delegation**.
-   Add a new entry with the Client ID and these OAuth scopes:
-   ```
-   https://www.googleapis.com/auth/gmail.readonly
-   https://www.googleapis.com/auth/calendar.readonly
-   https://www.googleapis.com/auth/chat.messages.readonly
-   https://www.googleapis.com/auth/chat.spaces.readonly
-   ```
-6. Place the downloaded JSON key at `./credentials/service-account.json` (the `credentials/` directory is git-ignored and volume-mounted into the container).
-7. Set `GOOGLE_CREDENTIALS_PATH=/app/credentials/service-account.json` and `GOOGLE_IMPERSONATE_USER=you@yourdomain.com` in your `.env`.
+3. Go to **APIs & Services → Credentials → Create Credentials → OAuth 2.0 Client ID**.
+   - Application type: **Web application**
+   - Add an **Authorized redirect URI**: `{NEXUS_BASE_URL}/api/google/auth/callback`
+     - Local default: `http://localhost:5100/api/google/auth/callback`
+4. Copy the **Client ID** and **Client Secret** into your `.env`.
+5. Start Nexus, navigate to **Settings → Google Account**, and click **Connect Google Account**.
+6. Grant consent — you'll be redirected back to Settings with the account shown as connected.
+
+Tokens are stored in the local SQLite database and auto-refreshed. To disconnect, click **Disconnect** in Settings.
 
 ---
 
@@ -86,8 +81,10 @@ Required for real-time CI status updates on repo Quick Link cards.
 |---|---|---|---|
 | `DATABASE_PATH` | No | SQLite file path inside container | `/app/data/nexus.db` |
 | `API_KEY` | No | Enables `X-API-Key` header auth on all endpoints. Leave blank to disable. | `mysecretkey` |
-| `GOOGLE_IMPERSONATE_USER` | For Google panels | Email of the user to impersonate | `you@company.com` |
-| `GOOGLE_CREDENTIALS_PATH` | For Google panels | Path to service account JSON inside container | `/app/credentials/service-account.json` |
+| `GOOGLE_CLIENT_ID` | For Google panels | OAuth 2.0 Client ID from Google Cloud Console | `123....apps.googleusercontent.com` |
+| `GOOGLE_CLIENT_SECRET` | For Google panels | OAuth 2.0 Client Secret | `GOCSPX-...` |
+| `NEXUS_BASE_URL` | For Google OAuth | Public base URL of the API (must match the redirect URI in Google Cloud Console) | `http://localhost:5100` |
+| `NEXUS_FRONTEND_URL` | For Google OAuth | Public base URL of the frontend (post-auth redirect target) | `http://localhost:4100` |
 | `GITHUB_PAT` | For GitHub features | Personal Access Token (`repo` read scope) | `ghp_...` |
 | `GITHUB_WEBHOOK_SECRET` | For webhooks | HMAC secret matching your GitHub webhook config | `randomstring` |
 | `CI_POLLING_INTERVAL_MINUTES` | No | How often to poll GitHub for CI updates | `5` |
@@ -109,7 +106,7 @@ dotnet run --project Nexus.API
 
 # Frontend (from web/)
 yarn install
-yarn start   # serves at http://localhost:4200 with proxy to API on :5000
+yarn start   # serves at http://localhost:4100 with proxy to API on :5000
 ```
 
 ---

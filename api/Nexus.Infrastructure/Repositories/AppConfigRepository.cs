@@ -28,4 +28,10 @@ public class AppConfigRepository
             ON CONFLICT(Key) DO UPDATE SET Value = excluded.Value",
             new { Key = key, Value = value });
     }
+
+    public async Task DeleteAsync(string key)
+    {
+        using var conn = Connect();
+        await conn.ExecuteAsync("DELETE FROM AppConfigs WHERE Key = @Key", new { Key = key });
+    }
 }

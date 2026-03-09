@@ -18,6 +18,7 @@ public class CalendarEventDto
     public DateTime? EndAt { get; set; }
     public List<string> Attendees { get; set; } = new();
     public string? MeetUrl { get; set; }
+    public string? HtmlLink { get; set; }
     public bool IsAllDay { get; set; }
 }
 

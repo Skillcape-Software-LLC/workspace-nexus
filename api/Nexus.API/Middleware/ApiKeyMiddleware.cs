@@ -27,6 +27,13 @@ public class ApiKeyMiddleware
             return;
         }
 
+        // Skip OAuth callback — Google redirects here, no API key available
+        if (context.Request.Path.StartsWithSegments("/api/google/auth/callback"))
+        {
+            await _next(context);
+            return;
+        }
+
         if (!context.Request.Headers.TryGetValue("X-API-Key", out var providedKey) ||
             providedKey != apiKey)
         {

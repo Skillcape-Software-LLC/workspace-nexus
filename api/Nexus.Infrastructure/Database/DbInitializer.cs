@@ -1,3 +1,4 @@
+using Dapper;
 using Microsoft.Data.Sqlite;
 
 namespace Nexus.Infrastructure.Database;
@@ -59,5 +60,30 @@ public static class DbInitializer
             );
         ";
         cmd.ExecuteNonQuery();
+
+        // Idempotent column migrations for Notes table
+        var existingColumns = conn
+            .Query<string>("SELECT name FROM pragma_table_info('Notes')")
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var columnsToAdd = new Dictionary<string, string>
+        {
+            ["Title"]      = "TEXT",
+            ["Tags"]       = "TEXT",
+            ["Category"]   = "TEXT",
+            ["ClientName"] = "TEXT",
+            ["UpdatedAt"]  = "TEXT",
+            ["IsArchived"] = "INTEGER NOT NULL DEFAULT 0"
+        };
+
+        foreach (var (col, type) in columnsToAdd)
+        {
+            if (!existingColumns.Contains(col))
+            {
+                var alter = conn.CreateCommand();
+                alter.CommandText = $"ALTER TABLE Notes ADD COLUMN {col} {type}";
+                alter.ExecuteNonQuery();
+            }
+        }
     }
 }

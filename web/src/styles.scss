@@ -3,12 +3,12 @@
 
 // ── Nexus Design Tokens ──────────────────────────────────────────────────────
 :root {
-  --bg-base:       #0e0f11;
-  --bg-panel:      #141518;
-  --bg-raised:     #1c1d21;
-  --bg-hover:      #22232a;
-  --border:        #2a2b32;
-  --border-bright: #3a3b45;
+  --bg-base:       #0d0e12;
+  --bg-panel:      #181920;
+  --bg-raised:     #22232c;
+  --bg-hover:      #2b2d38;
+  --border:        #3c3e4d;
+  --border-bright: #545668;
   --accent:        #f4922a;
   --accent-dim:    #7a4215;
   --accent-glow:   rgba(244, 146, 42, 0.15);
@@ -16,20 +16,20 @@
   --red:           #ff5b5b;
   --blue:          #4fa8e8;
   --yellow:        #f4c842;
-  --text-primary:  #e8e9ed;
-  --text-secondary:#8b8d99;
-  --text-dim:      #4e5060;
+  --text-primary:  #f0f1f5;
+  --text-secondary:#9e9fb0;
+  --text-dim:      #585a6a;
   --font-display:  'Syne', sans-serif;
   --font-mono:     'IBM Plex Mono', monospace;
   --font-body:     'IBM Plex Sans', sans-serif;
 
   // Map Bootstrap CSS vars to our tokens
-  --bs-body-bg:         #0e0f11;
-  --bs-body-color:      #e8e9ed;
-  --bs-border-color:    #2a2b32;
-  --bs-card-bg:         #141518;
-  --bs-card-cap-bg:     #1c1d21;
-  --bs-modal-bg:        #141518;
+  --bs-body-bg:         #0d0e12;
+  --bs-body-color:      #f0f1f5;
+  --bs-border-color:    #3c3e4d;
+  --bs-card-bg:         #181920;
+  --bs-card-cap-bg:     #22232c;
+  --bs-modal-bg:        #181920;
 }
 
 // ── Base ──────────────────────────────────────────────────────────────────────
@@ -48,12 +48,19 @@ body {
   background-color: var(--bg-base) !important;
   color: var(--text-primary) !important;
   font-family: var(--font-body) !important;
+  background-image: radial-gradient(circle, rgba(255,255,255,0.03) 1px, transparent 1px);
+  background-size: 20px 20px;
 }
 
 .card {
   background-color: var(--bg-panel);
   border-color: var(--border);
   color: var(--text-primary);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+
+  &:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5), 0 0 0 1px var(--border-bright);
+  }
 }
 
 .card-header {

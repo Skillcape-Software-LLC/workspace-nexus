@@ -1,8 +1,10 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { GitHubService } from '../../core/api/github.service';
 import { NotesService } from '../../core/api/notes.service';
+import { GoogleAuthService, GoogleAuthStatus } from '../../core/api/google-auth.service';
 import { WatchedAccount, GitHubAccountType } from '../../core/models/github.model';
 import { HealthStatus } from '../../core/models/note.model';
 
@@ -36,6 +38,50 @@ import { HealthStatus } from '../../core/models/note.model';
           <div class="mt-2" style="font-size:0.8rem;color:var(--green);">
             <i class="bi bi-check-circle me-1"></i>Saved!
           </div>
+        }
+      </div>
+    </div>
+
+    <!-- Google Account -->
+    <div class="card mb-4">
+      <div class="card-header py-2 px-3">
+        <i class="bi bi-google me-2 text-accent"></i>
+        <span style="font-weight:600;font-size:0.9rem;">Google Account</span>
+      </div>
+      <div class="card-body p-3">
+        @if (loadingGoogle()) {
+          <div class="text-center py-2">
+            <div class="spinner-border spinner-border-sm" style="color:var(--accent);"></div>
+          </div>
+        } @else if (googleStatus()?.connected) {
+          <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div>
+              <span style="font-size:0.875rem;">
+                <i class="bi bi-check-circle-fill me-2" style="color:var(--green);"></i>
+                Connected
+                @if (googleStatus()?.email) {
+                  <span style="color:var(--text-secondary);"> as {{ googleStatus()!.email }}</span>
+                }
+              </span>
+              @if (googleConnectedMsg()) {
+                <div class="mt-1" style="font-size:0.78rem;color:var(--green);">
+                  <i class="bi bi-check-circle me-1"></i>Successfully connected!
+                </div>
+              }
+            </div>
+            <button class="btn btn-sm" style="border:1px solid var(--red);color:var(--red);"
+                    (click)="disconnectGoogle()" [disabled]="disconnectingGoogle()">
+              @if (disconnectingGoogle()) { <span class="spinner-border spinner-border-sm me-1"></span> }
+              Disconnect
+            </button>
+          </div>
+        } @else {
+          <p class="mb-3" style="font-size:0.82rem;color:var(--text-secondary);">
+            Connect your Google account to enable Gmail, Calendar, and Chat integrations.
+          </p>
+          <button class="btn btn-accent btn-sm" (click)="connectGoogle()">
+            <i class="bi bi-google me-2"></i>Connect Google Account
+          </button>
         }
       </div>
     </div>
@@ -138,11 +184,11 @@ import { HealthStatus } from '../../core/models/note.model';
         } @else if (health()) {
           <div class="d-flex flex-wrap gap-2">
             <span class="badge d-flex align-items-center gap-1 px-2 py-1"
-                  [style.background]="health()!.googleCredentials ? 'rgba(61,220,132,0.12)' : 'rgba(255,91,91,0.12)'"
-                  [style.color]="health()!.googleCredentials ? 'var(--green)' : 'var(--red)'"
+                  [style.background]="health()!.googleConnected ? 'rgba(61,220,132,0.12)' : 'rgba(255,91,91,0.12)'"
+                  [style.color]="health()!.googleConnected ? 'var(--green)' : 'var(--red)'"
                   style="border:1px solid transparent;font-size:0.75rem;font-weight:500;">
-              <i [class]="health()!.googleCredentials ? 'bi bi-check-circle-fill' : 'bi bi-x-circle-fill'"></i>
-              Google Credentials
+              <i [class]="health()!.googleConnected ? 'bi bi-check-circle-fill' : 'bi bi-x-circle-fill'"></i>
+              Google
             </span>
             <span class="badge d-flex align-items-center gap-1 px-2 py-1"
                   [style.background]="health()!.githubPat ? 'rgba(61,220,132,0.12)' : 'rgba(255,91,91,0.12)'"
@@ -189,6 +235,8 @@ import { HealthStatus } from '../../core/models/note.model';
 export class SettingsComponent implements OnInit {
   private ghSvc = inject(GitHubService);
   private notesSvc = inject(NotesService);
+  private googleAuthSvc = inject(GoogleAuthService);
+  private route = inject(ActivatedRoute);
 
   accounts = signal<WatchedAccount[]>([]);
   loadingAccounts = signal(true);
@@ -203,12 +251,52 @@ export class SettingsComponent implements OnInit {
   health = signal<HealthStatus | null>(null);
   loadingHealth = signal(true);
 
+  googleStatus = signal<GoogleAuthStatus | null>(null);
+  loadingGoogle = signal(true);
+  disconnectingGoogle = signal(false);
+  googleConnectedMsg = signal(false);
+
   addForm = { accountName: '', accountType: 'user' as GitHubAccountType };
 
   ngOnInit() {
     this.loadAccounts();
     this.loadDisplayName();
     this.loadHealth();
+    this.loadGoogleStatus();
+
+    this.route.queryParams.subscribe(params => {
+      if (params['google'] === 'connected') {
+        this.googleConnectedMsg.set(true);
+        setTimeout(() => this.googleConnectedMsg.set(false), 4000);
+      }
+    });
+  }
+
+  loadGoogleStatus() {
+    this.loadingGoogle.set(true);
+    this.googleAuthSvc.getStatus().subscribe({
+      next: status => { this.googleStatus.set(status); this.loadingGoogle.set(false); },
+      error: () => this.loadingGoogle.set(false)
+    });
+  }
+
+  connectGoogle() {
+    this.googleAuthSvc.startAuth().subscribe({
+      next: ({ authUrl }) => { window.location.href = authUrl; },
+      error: () => {}
+    });
+  }
+
+  disconnectGoogle() {
+    this.disconnectingGoogle.set(true);
+    this.googleAuthSvc.disconnect().subscribe({
+      next: () => {
+        this.disconnectingGoogle.set(false);
+        this.loadGoogleStatus();
+        this.loadHealth();
+      },
+      error: () => this.disconnectingGoogle.set(false)
+    });
   }
 
   loadAccounts() {
