@@ -1,0 +1,26 @@
+services:
+  nexus-api:
+    build: ./api
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./data:/app/data                    # SQLite database (persisted across restarts)
+      - ./credentials:/app/credentials      # Google service account JSON (optional)
+    env_file:
+      - .env
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  nexus-web:
+    build: ./web
+    ports:
+      - "4200:80"
+    depends_on:
+      nexus-api:
+        condition: service_healthy
+    restart: unless-stopped

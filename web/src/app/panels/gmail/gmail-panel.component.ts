@@ -1,0 +1,120 @@
+import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
+import { CommonModule, DatePipe } from '@angular/common';
+import { GmailService } from './gmail.service';
+import { EmailSummary } from '../../core/models/google.model';
+
+@Component({
+  selector: 'app-gmail-panel',
+  standalone: true,
+  imports: [CommonModule, DatePipe],
+  template: `
+    <div class="card h-100" style="border-color:var(--border);">
+      <div class="card-header d-flex align-items-center justify-content-between py-2 px-3">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-envelope text-accent"></i>
+          <span style="font-weight:600;font-size:0.875rem;">Gmail</span>
+          @if (unreadCount() > 0) {
+            <span class="badge rounded-pill" style="background:var(--accent);color:#000;font-size:0.7rem;">
+              {{ unreadCount() }}
+            </span>
+          }
+        </div>
+        <button class="btn btn-sm p-0" style="color:var(--text-dim);" (click)="load()" title="Refresh">
+          <i class="bi bi-arrow-clockwise" [class.spin]="loading()"></i>
+        </button>
+      </div>
+
+      <div class="card-body p-0" style="overflow-y:auto;max-height:340px;">
+        @if (loading()) {
+          <div class="p-3 d-flex flex-column gap-2">
+            @for (i of [1,2,3,4,5]; track i) {
+              <div class="skeleton-row" style="height:40px;border-radius:6px;background:var(--bg-raised);animation:pulse 1.5s infinite;"></div>
+            }
+          </div>
+        } @else if (error()) {
+          <div class="p-3 text-center" style="color:var(--text-dim);font-size:0.8rem;">
+            <i class="bi bi-exclamation-circle d-block mb-1" style="font-size:1.5rem;color:var(--red);"></i>
+            {{ error() }}
+          </div>
+        } @else if (emails().length === 0) {
+          <div class="p-3 text-center" style="color:var(--text-dim);font-size:0.8rem;">
+            <i class="bi bi-inbox d-block mb-1" style="font-size:1.5rem;"></i>
+            Inbox is empty
+          </div>
+        } @else {
+          <ul class="list-unstyled mb-0">
+            @for (email of emails(); track email.id) {
+              <li class="px-3 py-2 border-bottom"
+                  style="border-color:var(--border) !important;cursor:default;transition:background .1s;"
+                  [style.background]="email.isUnread ? 'var(--bg-raised)' : 'transparent'">
+                <div class="d-flex align-items-start gap-2">
+                  @if (email.isUnread) {
+                    <span style="width:6px;height:6px;border-radius:50%;background:var(--accent);margin-top:5px;flex-shrink:0;"></span>
+                  } @else {
+                    <span style="width:6px;flex-shrink:0;"></span>
+                  }
+                  <div class="flex-grow-1 overflow-hidden">
+                    <div class="d-flex justify-content-between align-items-baseline gap-1">
+                      <span class="text-truncate" style="font-size:0.78rem;font-weight:{{email.isUnread ? '600' : '400'}};color:var(--text-primary);">
+                        {{ formatFrom(email.from) }}
+                      </span>
+                      <span class="flex-shrink-0" style="font-size:0.68rem;color:var(--text-dim);">
+                        {{ email.receivedAt | date:'MMM d' }}
+                      </span>
+                    </div>
+                    <div class="text-truncate" style="font-size:0.75rem;color:var(--text-secondary);">
+                      {{ email.subject || '(no subject)' }}
+                    </div>
+                  </div>
+                </div>
+              </li>
+            }
+          </ul>
+        }
+      </div>
+    </div>
+
+    <style>
+      @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+      .spin { animation: spin 0.8s linear infinite; }
+      @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+  `
+})
+export class GmailPanelComponent implements OnInit, OnDestroy {
+  private svc = inject(GmailService);
+  private refreshTimer?: ReturnType<typeof setInterval>;
+
+  emails = signal<EmailSummary[]>([]);
+  loading = signal(true);
+  error = signal<string | null>(null);
+
+  unreadCount = computed(() => this.emails().filter(e => e.isUnread).length);
+
+  ngOnInit() {
+    this.load();
+    this.refreshTimer = setInterval(() => this.load(), 5 * 60 * 1000);
+  }
+
+  ngOnDestroy() {
+    if (this.refreshTimer) clearInterval(this.refreshTimer);
+  }
+
+  load() {
+    this.loading.set(true);
+    this.error.set(null);
+    this.svc.getInbox().subscribe({
+      next: (data: EmailSummary[]) => { this.emails.set(data); this.loading.set(false); },
+      error: (err: { error?: { error?: string } }) => {
+        const msg = err.error?.error ?? 'Failed to load Gmail.';
+        this.error.set(msg);
+        this.loading.set(false);
+      }
+    });
+  }
+
+  formatFrom(from: string): string {
+    const match = from.match(/^"?([^"<]+)"?\s*</);
+    return match ? match[1].trim() : from.replace(/<.*>/, '').trim() || from;
+  }
+}

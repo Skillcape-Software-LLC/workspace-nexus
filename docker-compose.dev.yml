@@ -1,0 +1,22 @@
+services:
+  nexus-api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - DATABASE_PATH=/app/data/nexus.db
+    volumes:
+      - ./data:/app/data
+      - ./credentials:/app/credentials
+    ports:
+      - "5000:5000"
+    env_file:
+      - .env
+
+  nexus-web:
+    build: ./web
+    ports:
+      - "4200:80"
+    depends_on:
+      - nexus-api

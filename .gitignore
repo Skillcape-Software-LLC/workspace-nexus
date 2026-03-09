@@ -1,0 +1,23 @@
+# Secrets & local config
+.env
+credentials/
+
+# Database
+*.db
+*.db-shm
+*.db-wal
+data/
+
+# .NET
+**/bin/
+**/obj/
+
+# Node / Angular
+**/node_modules/
+.angular/
+dist/
+
+# IDE
+.vs/
+.vscode/
+*.user

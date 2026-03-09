@@ -1,0 +1,162 @@
+// ── Google Fonts ─────────────────────────────────────────────────────────────
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500&display=swap');
+
+// ── Nexus Design Tokens ──────────────────────────────────────────────────────
+:root {
+  --bg-base:       #0e0f11;
+  --bg-panel:      #141518;
+  --bg-raised:     #1c1d21;
+  --bg-hover:      #22232a;
+  --border:        #2a2b32;
+  --border-bright: #3a3b45;
+  --accent:        #f4922a;
+  --accent-dim:    #7a4215;
+  --accent-glow:   rgba(244, 146, 42, 0.15);
+  --green:         #3ddc84;
+  --red:           #ff5b5b;
+  --blue:          #4fa8e8;
+  --yellow:        #f4c842;
+  --text-primary:  #e8e9ed;
+  --text-secondary:#8b8d99;
+  --text-dim:      #4e5060;
+  --font-display:  'Syne', sans-serif;
+  --font-mono:     'IBM Plex Mono', monospace;
+  --font-body:     'IBM Plex Sans', sans-serif;
+
+  // Map Bootstrap CSS vars to our tokens
+  --bs-body-bg:         #0e0f11;
+  --bs-body-color:      #e8e9ed;
+  --bs-border-color:    #2a2b32;
+  --bs-card-bg:         #141518;
+  --bs-card-cap-bg:     #1c1d21;
+  --bs-modal-bg:        #141518;
+}
+
+// ── Base ──────────────────────────────────────────────────────────────────────
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  margin: 0;
+}
+
+// ── Bootstrap dark overrides ──────────────────────────────────────────────────
+body {
+  background-color: var(--bg-base) !important;
+  color: var(--text-primary) !important;
+  font-family: var(--font-body) !important;
+}
+
+.card {
+  background-color: var(--bg-panel);
+  border-color: var(--border);
+  color: var(--text-primary);
+}
+
+.card-header {
+  background-color: var(--bg-raised);
+  border-color: var(--border);
+}
+
+.navbar {
+  background-color: var(--bg-panel) !important;
+  border-bottom: 1px solid var(--border);
+}
+
+.nav-link {
+  color: var(--text-secondary) !important;
+  &:hover { color: var(--text-primary) !important; }
+  &.active { color: var(--accent) !important; }
+}
+
+.form-control, .form-select {
+  background-color: var(--bg-raised);
+  color: var(--text-primary);
+  border-color: var(--border);
+
+  &:focus {
+    background-color: var(--bg-raised);
+    color: var(--text-primary);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 0.2rem var(--accent-glow);
+  }
+
+  &::placeholder { color: var(--text-dim); }
+}
+
+.form-check-input:checked {
+  background-color: var(--accent);
+  border-color: var(--accent);
+}
+
+.modal-content {
+  background-color: var(--bg-panel);
+  border-color: var(--border);
+  color: var(--text-primary);
+}
+
+.modal-header, .modal-footer {
+  border-color: var(--border);
+}
+
+.btn-close {
+  filter: invert(1) grayscale(100%) brightness(200%);
+}
+
+.dropdown-menu {
+  background-color: var(--bg-raised);
+  border-color: var(--border);
+  color: var(--text-primary);
+}
+
+.dropdown-item {
+  color: var(--text-primary);
+  &:hover { background-color: var(--bg-hover); }
+}
+
+// ── Accent button ─────────────────────────────────────────────────────────────
+.btn-accent {
+  background-color: var(--accent);
+  border-color: var(--accent);
+  color: #000;
+  font-weight: 600;
+
+  &:hover, &:focus {
+    background-color: #e07a1a;
+    border-color: #e07a1a;
+    color: #000;
+  }
+
+  &:disabled {
+    background-color: var(--accent-dim);
+    border-color: var(--accent-dim);
+    color: #555;
+  }
+}
+
+// ── Utility classes ───────────────────────────────────────────────────────────
+.text-accent      { color: var(--accent) !important; }
+.text-dim         { color: var(--text-dim) !important; }
+.text-muted-nexus { color: var(--text-secondary) !important; }
+.bg-panel         { background-color: var(--bg-panel) !important; }
+.bg-raised        { background-color: var(--bg-raised) !important; }
+.border-nexus     { border-color: var(--border) !important; }
+.font-mono        { font-family: var(--font-mono) !important; }
+.font-display     { font-family: var(--font-display) !important; }
+
+// ── Status badges ─────────────────────────────────────────────────────────────
+.badge-pass    { background-color: var(--green);  color: #000; }
+.badge-fail    { background-color: var(--red);    color: #fff; }
+.badge-running { background-color: var(--yellow); color: #000; }
+.badge-unknown { background-color: var(--bg-raised); color: var(--text-dim); border: 1px solid var(--border); }
+
+// ── CDK drag-drop ─────────────────────────────────────────────────────────────
+.cdk-drag-preview  { box-shadow: 0 8px 24px rgba(0,0,0,0.5); opacity: 0.9; }
+.cdk-drag-placeholder { opacity: 0.3; }
+.cdk-drag-animating { transition: transform 250ms cubic-bezier(0,0,0.2,1); }
+.cdk-drop-list-dragging .quick-link-card:not(.cdk-drag-placeholder) {
+  transition: transform 250ms cubic-bezier(0,0,0.2,1);
+}
