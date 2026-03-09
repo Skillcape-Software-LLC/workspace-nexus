@@ -92,7 +92,7 @@ This section walks you through creating a Google OAuth 2.0 application so Nexus 
 
    | Scenario | Redirect URI |
    |----------|-------------|
-   | Local / direct access | `http://localhost:4100/api/google/auth/callback` |
+   | Local / direct access | `http://localhost:5100/api/google/auth/callback` |
    | Behind a reverse proxy | `https://nexus.example.com/api/google/auth/callback` |
 
    Use whatever URL you access Nexus from in a browser — that is your redirect URI. The path must be exactly `/api/google/auth/callback`.
@@ -112,7 +112,7 @@ Make sure `NEXUS_BASE_URL` matches the origin you used for the redirect URI:
 
 ```env
 # Local access (default)
-NEXUS_BASE_URL=http://localhost:4100
+NEXUS_BASE_URL=http://localhost:5100
 
 # Behind a reverse proxy — use the public URL
 NEXUS_BASE_URL=https://nexus.example.com
@@ -150,7 +150,7 @@ This section walks you through creating a GitHub OAuth App so Nexus can read you
    |-------|-------------|----------------------|
    | **Application name** | `Nexus` | `Nexus` |
    | **Homepage URL** | `http://localhost:4100` | `https://nexus.example.com` |
-   | **Authorization callback URL** | `http://localhost:4100/api/github/oauth/callback` | `https://nexus.example.com/api/github/oauth/callback` |
+   | **Authorization callback URL** | `http://localhost:5100/api/github/oauth/callback` | `https://nexus.example.com/api/github/oauth/callback` |
 
    The callback path must be exactly `/api/github/oauth/callback`.
 
@@ -170,7 +170,7 @@ Make sure `NEXUS_BASE_URL` matches the origin you used for the callback URL:
 
 ```env
 # Local access (default)
-NEXUS_BASE_URL=http://localhost:4100
+NEXUS_BASE_URL=http://localhost:5100
 
 # Behind a reverse proxy — use the public URL
 NEXUS_BASE_URL=https://nexus.example.com
@@ -230,7 +230,7 @@ All config lives in `.env`. See [`.env.example`](.env.example) for the full temp
 |----------|---------|---------|
 | `DATABASE_PATH` | `/app/data/nexus.db` | SQLite file path inside container |
 | `API_KEY` | *(empty)* | If set, all API requests require `X-API-Key` header |
-| `NEXUS_BASE_URL` | `http://localhost:4100` | Base URL for OAuth redirect URIs — must match what you enter in Google/GitHub |
+| `NEXUS_BASE_URL` | `http://localhost:5100` | Base URL for OAuth redirect URIs — must match what you enter in Google/GitHub |
 | `NEXUS_FRONTEND_URL` | `http://localhost:4100` | Frontend origin for CORS and post-auth redirects |
 | `GOOGLE_CLIENT_ID` | | Google OAuth Client ID |
 | `GOOGLE_CLIENT_SECRET` | | Google OAuth Client Secret |
@@ -260,8 +260,6 @@ docker compose up -d
 ```
 
 Open **http://your-server-ip:4100** to verify Nexus is running.
-
-**How it works:** All traffic goes through port `4100` (the web container). Its built-in nginx proxies `/api/` requests — including OAuth callbacks — to the API container internally. You only need to expose **one port**.
 
 **Data persistence:** SQLite lives in a Docker volume (prod) or `./data/` on the host (dev). Back up this directory/volume to preserve all data.
 
@@ -303,7 +301,7 @@ When you move from `http://localhost:4100` to `https://nexus.example.com`, you *
 **Google Cloud Console:**
 1. Go to **APIs & Services → Credentials** and click your OAuth client.
 2. Under **Authorized redirect URIs**, change:
-   - `http://localhost:4100/api/google/auth/callback` → `https://nexus.example.com/api/google/auth/callback`
+   - `http://localhost:5100/api/google/auth/callback` → `https://nexus.example.com/api/google/auth/callback`
 3. Click **Save**. Changes take effect immediately.
 
 **GitHub OAuth App:**
@@ -427,7 +425,6 @@ yarn start     # http://localhost:4200, proxies API calls to :5000
 
 ## Roadmap
 
-- **AI Daily Briefing** — Claude-powered summary of your calendar, unread emails, and Chat activity. Cron-triggered, cached in SQLite.
 
 ---
 
