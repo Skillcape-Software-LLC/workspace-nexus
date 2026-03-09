@@ -150,6 +150,7 @@ export class QuickNoteModalComponent implements OnChanges {
     }).subscribe({
       next: note => {
         this.noteCreated.emit(note);
+        this.svc.notifyNoteCreated();
         this.reset();
         this.closed.emit();
         this.submitting.set(false);

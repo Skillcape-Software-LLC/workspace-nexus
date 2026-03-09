@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, Subject } from 'rxjs';
 import { API_BASE_URL } from './api.config';
 import { Note, CreateNoteRequest, UpdateNoteRequest, HealthStatus } from '../models/note.model';
 
@@ -14,6 +14,13 @@ export interface NoteFilters {
 @Injectable({ providedIn: 'root' })
 export class NotesService {
   private http = inject(HttpClient);
+
+  private _noteCreated = new Subject<void>();
+  noteCreated$ = this._noteCreated.asObservable();
+
+  notifyNoteCreated() {
+    this._noteCreated.next();
+  }
 
   getAllNotes(filters?: NoteFilters): Observable<Note[]> {
     let params = new HttpParams();

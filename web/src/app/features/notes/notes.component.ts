@@ -1,7 +1,8 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal, computed } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { marked } from 'marked';
+import { Subscription } from 'rxjs';
 import { NotesService } from '../../core/api/notes.service';
 import { Note, parseTags } from '../../core/models/note.model';
 
@@ -208,9 +209,10 @@ import { Note, parseTags } from '../../core/models/note.model';
                             style="font-size:0.85rem;font-family:var(--font-mono);resize:vertical;min-height:100px;line-height:1.6;">
                   </textarea>
                 } @else {
-                  <div class="note-body note-clamp"
+                  <div class="note-body note-clamp note-clickable"
+                       (click)="viewingNote.set(note)"
                        [innerHTML]="renderMarkdown(note.body)"
-                       style="font-size:0.83rem;color:var(--text-secondary);line-height:1.6;"></div>
+                       style="font-size:0.83rem;color:var(--text-secondary);line-height:1.6;cursor:pointer;"></div>
                 }
               </div>
 
@@ -250,6 +252,53 @@ import { Note, parseTags } from '../../core/models/note.model';
             </div>
           </div>
         }
+      </div>
+    }
+
+    <!-- Note viewer offcanvas -->
+    @if (viewingNote(); as note) {
+      <div class="note-viewer-backdrop" (click)="viewingNote.set(null)"></div>
+      <div class="note-viewer-offcanvas" (keydown.escape)="viewingNote.set(null)">
+        <div class="d-flex align-items-center justify-content-between px-4 py-3"
+             style="border-bottom:1px solid var(--border);flex-shrink:0;">
+          <div class="d-flex flex-column gap-1 min-w-0 me-3">
+            @if (note.title) {
+              <h5 class="mb-0" style="font-weight:700;color:var(--text-primary);font-family:var(--font-display);">{{ note.title }}</h5>
+            }
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+              <span style="font-size:0.75rem;color:var(--text-dim);">{{ note.createdAt | date:'MMM d, y · h:mm a' }}</span>
+              @if (note.updatedAt && note.updatedAt !== note.createdAt) {
+                <span style="font-size:0.72rem;color:var(--text-dim);font-style:italic;">edited {{ note.updatedAt | date:'MMM d · h:mm a' }}</span>
+              }
+              @if (note.authorName) {
+                <span style="font-size:0.72rem;color:var(--text-dim);">by {{ note.authorName }}</span>
+              }
+            </div>
+            @if (getTags(note).length > 0 || note.category || note.clientName) {
+              <div class="d-flex flex-wrap gap-1 mt-1">
+                @for (tag of getTags(note); track tag) {
+                  <span style="background:var(--bg-raised);border:1px solid var(--border);border-radius:20px;
+                               padding:0.1rem 0.5rem;font-size:0.7rem;color:var(--text-dim);font-family:var(--font-mono);">#{{ tag }}</span>
+                }
+                @if (note.category) {
+                  <span style="background:var(--bg-raised);border:1px solid var(--border);border-radius:20px;
+                               padding:0.1rem 0.5rem;font-size:0.7rem;color:var(--text-dim);">{{ note.category }}</span>
+                }
+                @if (note.clientName) {
+                  <span style="background:var(--bg-raised);border:1px solid var(--border);border-radius:20px;
+                               padding:0.1rem 0.5rem;font-size:0.7rem;color:var(--text-dim);">{{ note.clientName }}</span>
+                }
+              </div>
+            }
+          </div>
+          <button (click)="viewingNote.set(null)" title="Close"
+                  style="background:var(--bg-raised);border:1px solid var(--border);border-radius:6px;
+                         padding:0.3rem 0.6rem;color:var(--text-secondary);cursor:pointer;font-size:0.85rem;flex-shrink:0;">
+            ✕
+          </button>
+        </div>
+        <div class="note-body px-4 py-3" style="overflow-y:auto;flex:1;font-size:0.9rem;color:var(--text-secondary);line-height:1.7;"
+             [innerHTML]="renderMarkdown(note.body)"></div>
       </div>
     }
 
@@ -304,11 +353,42 @@ import { Note, parseTags } from '../../core/models/note.model';
       .note-btn-del:hover { color: var(--red) !important; }
       .note-btn-archive:hover { color: var(--text-secondary) !important; }
       .note-btn-restore:hover { color: var(--accent) !important; }
+      .note-clickable:hover { opacity: 0.8; }
+      .note-viewer-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.5);
+        z-index: 1040;
+        animation: fadeIn .15s ease;
+      }
+      .note-viewer-offcanvas {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        max-height: 70vh;
+        background: var(--bg-panel);
+        border-top: 1px solid var(--border);
+        border-radius: 16px 16px 0 0;
+        z-index: 1045;
+        display: flex;
+        flex-direction: column;
+        animation: slideUp .2s ease;
+      }
+      @keyframes slideUp {
+        from { transform: translateY(100%); }
+        to { transform: translateY(0); }
+      }
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
     </style>
   `
 })
-export class NotesComponent implements OnInit {
+export class NotesComponent implements OnInit, OnDestroy {
   private notesSvc = inject(NotesService);
+  private sub?: Subscription;
 
 
   loading = signal(true);
@@ -324,6 +404,8 @@ export class NotesComponent implements OnInit {
   editTitle = '';
   editBody = '';
   editTags = '';
+
+  viewingNote = signal<Note | null>(null);
 
   filteredNotes = computed(() => {
     const q = this.searchQuery.toLowerCase();
@@ -347,6 +429,11 @@ export class NotesComponent implements OnInit {
 
   ngOnInit() {
     this.load();
+    this.sub = this.notesSvc.noteCreated$.subscribe(() => this.load());
+  }
+
+  ngOnDestroy() {
+    this.sub?.unsubscribe();
   }
 
   setView(view: 'active' | 'archive') {
