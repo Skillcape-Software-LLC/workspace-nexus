@@ -36,7 +36,7 @@ import { KeyboardShortcutService } from '../core/services/keyboard-shortcut.serv
           <div class="help-group">
             <div class="help-group-title">Direct Shortcuts</div>
             <div class="help-row">
-              <span class="help-keys"><kbd>Alt</kbd> + <kbd>N</kbd></span>
+              <span class="help-keys"><kbd>Alt</kbd> + <kbd>{{ svc.resolveKey('quick-note', 'n').toUpperCase() }}</kbd></span>
               <span>New quick note</span>
             </div>
             <div class="help-row">

@@ -2,6 +2,7 @@ import { Injectable, NgZone, signal, computed, inject, DestroyRef } from '@angul
 import { DOCUMENT } from '@angular/common';
 
 const LEADER_KEY_STORAGE = 'nexus_leader_key';
+const KEY_BINDINGS_STORAGE = 'nexus_key_bindings';
 const DEFAULT_LEADER_KEY = 'j';
 
 export interface ShortcutAction {
@@ -20,6 +21,23 @@ interface DirectShortcut {
   allowInInput?: boolean;
 }
 
+export interface KeyBindingDef {
+  id: string;
+  defaultKey: string;
+  label: string;
+  group: 'Navigation' | 'Actions';
+  isDirect?: boolean;
+}
+
+export const CONFIGURABLE_BINDINGS: KeyBindingDef[] = [
+  { id: 'nav-hub',      defaultKey: 'h', label: 'Navigate to Hub',      group: 'Navigation' },
+  { id: 'nav-notes',    defaultKey: 'n', label: 'Navigate to Notes',    group: 'Navigation' },
+  { id: 'nav-settings', defaultKey: 's', label: 'Navigate to Settings', group: 'Navigation' },
+  { id: 'hub-refresh',  defaultKey: 'r', label: 'Refresh panels',       group: 'Actions' },
+  { id: 'quick-note',   defaultKey: 'n', label: 'New quick note',       group: 'Actions', isDirect: true },
+  { id: 'notes-search', defaultKey: '/', label: 'Search notes',         group: 'Actions' },
+];
+
 @Injectable({ providedIn: 'root' })
 export class KeyboardShortcutService {
   private zone = inject(NgZone);
@@ -30,6 +48,7 @@ export class KeyboardShortcutService {
   private directShortcuts: DirectShortcut[] = [];
 
   readonly leaderKey = signal(this.loadLeaderKey());
+  readonly keyBindings = signal<Record<string, string>>(this.loadKeyBindings());
   readonly paletteOpen = signal(false);
   readonly helpOpen = signal(false);
   readonly availableActions = computed(() => this.actions());
@@ -43,8 +62,13 @@ export class KeyboardShortcutService {
     });
   }
 
+  resolveKey(id: string, defaultKey: string): string {
+    return this.keyBindings()[id] ?? defaultKey;
+  }
+
   register(action: ShortcutAction): void {
-    this.actions.update(list => [...list.filter(a => a.id !== action.id), action]);
+    const resolved = { ...action, key: this.resolveKey(action.id, action.key) };
+    this.actions.update(list => [...list.filter(a => a.id !== action.id), resolved]);
   }
 
   unregister(id: string): void {
@@ -52,12 +76,25 @@ export class KeyboardShortcutService {
   }
 
   registerDirect(shortcut: DirectShortcut): void {
+    const resolved = { ...shortcut, key: this.resolveKey(shortcut.id, shortcut.key) };
     this.directShortcuts = this.directShortcuts.filter(s => s.id !== shortcut.id);
-    this.directShortcuts.push(shortcut);
+    this.directShortcuts.push(resolved);
   }
 
   unregisterDirect(id: string): void {
     this.directShortcuts = this.directShortcuts.filter(s => s.id !== id);
+  }
+
+  setKeyBinding(id: string, key: string): void {
+    const bindings = { ...this.keyBindings(), [id]: key };
+    localStorage.setItem(KEY_BINDINGS_STORAGE, JSON.stringify(bindings));
+    this.keyBindings.set(bindings);
+
+    // Update any registered palette action with this id
+    this.actions.update(list => list.map(a => a.id === id ? { ...a, key } : a));
+
+    // Update any registered direct shortcut with this id
+    this.directShortcuts = this.directShortcuts.map(s => s.id === id ? { ...s, key } : s);
   }
 
   setLeaderKey(key: string): void {
@@ -146,5 +183,13 @@ export class KeyboardShortcutService {
 
   private loadLeaderKey(): string {
     return localStorage.getItem(LEADER_KEY_STORAGE) || DEFAULT_LEADER_KEY;
+  }
+
+  private loadKeyBindings(): Record<string, string> {
+    try {
+      return JSON.parse(localStorage.getItem(KEY_BINDINGS_STORAGE) || '{}');
+    } catch {
+      return {};
+    }
   }
 }

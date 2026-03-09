@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { GitHubService } from '../../core/api/github.service';
 import { NotesService } from '../../core/api/notes.service';
-import { KeyboardShortcutService } from '../../core/services/keyboard-shortcut.service';
+import { KeyboardShortcutService, CONFIGURABLE_BINDINGS, KeyBindingDef } from '../../core/services/keyboard-shortcut.service';
 import { GoogleAuthService, GoogleAuthStatus } from '../../core/api/google-auth.service';
 import { WatchedRepo, GitHubOAuthStatus } from '../../core/models/github.model';
 import { HealthStatus } from '../../core/models/note.model';
@@ -50,30 +50,81 @@ import { HealthStatus } from '../../core/models/note.model';
         <span style="font-weight:600;font-size:0.9rem;">Keyboard Shortcuts</span>
       </div>
       <div class="card-body p-3">
-        <p class="mb-3" style="font-size:0.82rem;color:var(--text-secondary);">
-          Set the leader key for the command palette. Press <kbd style="background:var(--bg-raised);border:1px solid var(--border);border-radius:3px;padding:1px 5px;font-family:var(--font-mono);font-size:0.8rem;">Alt</kbd>
-          + your chosen key to open quick actions.
-        </p>
-        <div class="d-flex gap-2 align-items-center" style="max-width:400px;">
-          <div class="d-flex align-items-center gap-2">
-            <span style="font-size:0.82rem;color:var(--text-secondary);font-weight:500;">Alt +</span>
-            <input class="form-control form-control-sm text-center"
-                   style="width:60px;font-family:var(--font-mono);font-weight:600;text-transform:uppercase;"
-                   [value]="shortcutSvc.leaderKey().toUpperCase()"
-                   maxlength="1"
-                   (keydown)="captureLeaderKey($event)" readonly
-                   placeholder="Key"
-                   title="Click and press any key" />
+        <!-- Leader / trigger key -->
+        <div class="mb-4">
+          <div style="font-size:0.78rem;font-weight:600;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.5rem;">Trigger Key</div>
+          <p class="mb-2" style="font-size:0.82rem;color:var(--text-secondary);">
+            Press <kbd class="settings-kbd">Alt</kbd> + your chosen key to open the command palette.
+          </p>
+          <div class="d-flex gap-2 align-items-center">
+            <div class="d-flex align-items-center gap-2">
+              <span style="font-size:0.82rem;color:var(--text-secondary);font-weight:500;">Alt +</span>
+              <input class="form-control form-control-sm text-center"
+                     style="width:60px;font-family:var(--font-mono);font-weight:600;text-transform:uppercase;"
+                     [value]="shortcutSvc.leaderKey().toUpperCase()"
+                     maxlength="1"
+                     (keydown)="captureLeaderKey($event)" readonly
+                     placeholder="Key"
+                     title="Click and press any key" />
+            </div>
+            <span style="font-size:0.75rem;color:var(--text-dim);">Click the box and press any key</span>
           </div>
-          <span style="font-size:0.75rem;color:var(--text-dim);">Click the box and press any key</span>
+          @if (leaderKeySaved()) {
+            <div class="mt-2" style="font-size:0.8rem;color:var(--green);">
+              <i class="bi bi-check-circle me-1"></i>Leader key set to <kbd class="settings-kbd">{{ shortcutSvc.leaderCombo() }}</kbd>
+            </div>
+          }
         </div>
-        @if (leaderKeySaved()) {
-          <div class="mt-2" style="font-size:0.8rem;color:var(--green);">
-            <i class="bi bi-check-circle me-1"></i>Leader key set to <kbd style="background:var(--bg-raised);border:1px solid var(--border);border-radius:3px;padding:1px 5px;font-family:var(--font-mono);font-size:0.8rem;">{{ shortcutSvc.leaderCombo() }}</kbd>
+
+        <!-- Configurable key bindings -->
+        @for (group of bindingGroups; track group.name) {
+          <div class="mb-3">
+            <div style="font-size:0.78rem;font-weight:600;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.5rem;">{{ group.name }}</div>
+            @for (b of group.bindings; track b.id) {
+              <div class="d-flex align-items-center gap-3 py-1">
+                <span style="font-size:0.82rem;color:var(--text-secondary);min-width:160px;">{{ b.label }}</span>
+                @if (b.isDirect) {
+                  <span style="font-size:0.78rem;color:var(--text-dim);font-weight:500;">Alt +</span>
+                }
+                <input class="form-control form-control-sm text-center"
+                       style="width:60px;font-family:var(--font-mono);font-weight:600;"
+                       [value]="getBindingDisplay(b)"
+                       maxlength="1" readonly
+                       (keydown)="captureBinding($event, b)"
+                       title="Click and press any key" />
+                @if (getBindingKey(b) !== b.defaultKey) {
+                  <button class="btn btn-sm p-0 px-1" style="font-size:0.7rem;color:var(--text-dim);border:1px solid var(--border);border-radius:4px;"
+                          (click)="resetBinding(b)" title="Reset to default">
+                    <i class="bi bi-arrow-counterclockwise"></i>
+                  </button>
+                }
+              </div>
+            }
           </div>
         }
+
+        @if (bindingSaved()) {
+          <div style="font-size:0.8rem;color:var(--green);">
+            <i class="bi bi-check-circle me-1"></i>Key binding updated!
+          </div>
+        }
+
+        <div class="mt-2" style="font-size:0.75rem;color:var(--text-dim);">
+          <i class="bi bi-info-circle me-1"></i>Escape, Ctrl+Enter (save note), and Alt+? (shortcuts help) cannot be reassigned.
+        </div>
       </div>
     </div>
+
+    <style>
+      .settings-kbd {
+        background: var(--bg-raised);
+        border: 1px solid var(--border);
+        border-radius: 3px;
+        padding: 1px 5px;
+        font-family: var(--font-mono);
+        font-size: 0.8rem;
+      }
+    </style>
 
     <!-- Google Account -->
     <div class="card mb-4">
@@ -327,6 +378,9 @@ export class SettingsComponent implements OnInit {
   shortcutSvc = inject(KeyboardShortcutService);
 
   leaderKeySaved = signal(false);
+  bindingSaved = signal(false);
+
+  bindingGroups = this.groupBindings();
 
   watchedRepos = signal<WatchedRepo[]>([]);
   loadingRepos = signal(true);
@@ -467,6 +521,39 @@ export class SettingsComponent implements OnInit {
     this.shortcutSvc.setLeaderKey(key);
     this.leaderKeySaved.set(true);
     setTimeout(() => this.leaderKeySaved.set(false), 2000);
+  }
+
+  captureBinding(e: KeyboardEvent, binding: KeyBindingDef) {
+    e.preventDefault();
+    const key = e.key;
+    if (key === 'Alt' || key === 'Control' || key === 'Shift' || key === 'Meta' || key === 'Tab' || key === 'Escape') return;
+    this.shortcutSvc.setKeyBinding(binding.id, key);
+    this.bindingSaved.set(true);
+    setTimeout(() => this.bindingSaved.set(false), 2000);
+  }
+
+  resetBinding(binding: KeyBindingDef) {
+    this.shortcutSvc.setKeyBinding(binding.id, binding.defaultKey);
+    this.bindingSaved.set(true);
+    setTimeout(() => this.bindingSaved.set(false), 2000);
+  }
+
+  getBindingKey(binding: KeyBindingDef): string {
+    return this.shortcutSvc.resolveKey(binding.id, binding.defaultKey);
+  }
+
+  getBindingDisplay(binding: KeyBindingDef): string {
+    const key = this.getBindingKey(binding);
+    return key.length === 1 ? key.toUpperCase() : key;
+  }
+
+  private groupBindings(): { name: string; bindings: KeyBindingDef[] }[] {
+    const groups = new Map<string, KeyBindingDef[]>();
+    for (const b of CONFIGURABLE_BINDINGS) {
+      if (!groups.has(b.group)) groups.set(b.group, []);
+      groups.get(b.group)!.push(b);
+    }
+    return Array.from(groups, ([name, bindings]) => ({ name, bindings }));
   }
 
   loadHealth() {
