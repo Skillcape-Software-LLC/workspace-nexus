@@ -25,8 +25,8 @@ Every integration is optional. Panels degrade gracefully when not configured —
 
 ```bash
 # Download the compose file and env template
-curl -O https://raw.githubusercontent.com/chad-hollenbeck/nexus/master/docker-compose.prod.yml
-curl -O https://raw.githubusercontent.com/chad-hollenbeck/nexus/master/.env.example
+curl -O https://raw.githubusercontent.com/skillcape-software-llc/workspace-nexus/master/docker-compose.prod.yml
+curl -O https://raw.githubusercontent.com/skillcape-software-llc/workspace-nexus/master/.env.example
 mv docker-compose.prod.yml docker-compose.yml
 cp .env.example .env
 docker compose up -d
@@ -251,8 +251,8 @@ Use the pre-built images (no cloning required):
 ```bash
 # On your server
 mkdir nexus && cd nexus
-curl -O https://raw.githubusercontent.com/chad-hollenbeck/nexus/master/docker-compose.prod.yml
-curl -O https://raw.githubusercontent.com/chad-hollenbeck/nexus/master/.env.example
+curl -O https://raw.githubusercontent.com/skillcape-software-llc/workspace-nexus/master/docker-compose.prod.yml
+curl -O https://raw.githubusercontent.com/skillcape-software-llc/workspace-nexus/master/.env.example
 mv docker-compose.prod.yml docker-compose.yml
 cp .env.example .env
 # Edit .env with your values (see next section)
