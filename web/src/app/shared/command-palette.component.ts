@@ -6,7 +6,7 @@ import { KeyboardShortcutService } from '../core/services/keyboard-shortcut.serv
   standalone: true,
   template: `
     @if (svc.paletteOpen()) {
-      <div class="palette-backdrop" (click)="svc.closePalette()"></div>
+      <div class="palette-backdrop"></div>
       <div class="palette-card">
         <div class="palette-header">
           <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style="opacity:0.6;">

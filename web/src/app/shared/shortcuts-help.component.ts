@@ -6,7 +6,7 @@ import { KeyboardShortcutService } from '../core/services/keyboard-shortcut.serv
   standalone: true,
   template: `
     @if (svc.helpOpen()) {
-      <div class="help-backdrop" (click)="svc.closeHelp()"></div>
+      <div class="help-backdrop"></div>
       <div class="help-card">
         <div class="help-header">
           <span>Keyboard Shortcuts</span>

@@ -258,7 +258,7 @@ import { KeyboardShortcutService } from '../../core/services/keyboard-shortcut.s
 
     <!-- Note viewer offcanvas -->
     @if (viewingNote(); as note) {
-      <div class="note-viewer-backdrop" (click)="viewingNote.set(null)"></div>
+      <div class="note-viewer-backdrop"></div>
       <div class="note-viewer-offcanvas" (keydown.escape)="viewingNote.set(null)">
         <div class="d-flex align-items-center justify-content-between px-4 py-3"
              style="border-bottom:1px solid var(--border);flex-shrink:0;">

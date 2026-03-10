@@ -12,7 +12,7 @@ import { Note } from '../../core/models/note.model';
   imports: [FormsModule],
   template: `
     <!-- Backdrop -->
-    <div (click)="close()" style="
+    <div style="
       position:fixed;inset:0;background:rgba(0,0,0,0.65);
       z-index:1050;display:flex;align-items:center;justify-content:center;">
 
