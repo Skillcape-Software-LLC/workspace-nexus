@@ -3,13 +3,14 @@ import { GmailPanelComponent } from '../../panels/gmail/gmail-panel.component';
 import { ChatPanelComponent } from '../../panels/gchat/chat-panel.component';
 import { CalendarPanelComponent } from '../../panels/calendar/calendar-panel.component';
 import { GithubPanelComponent } from '../../panels/github/github-panel.component';
+import { UptimeKumaPanelComponent } from '../../panels/uptime-kuma/uptime-kuma-panel.component';
 import { KeyboardShortcutService } from '../../core/services/keyboard-shortcut.service';
 import { HubRefreshService } from '../../core/services/hub-refresh.service';
 
 @Component({
   selector: 'app-hub',
   standalone: true,
-  imports: [GmailPanelComponent, ChatPanelComponent, CalendarPanelComponent, GithubPanelComponent],
+  imports: [GmailPanelComponent, ChatPanelComponent, CalendarPanelComponent, GithubPanelComponent, UptimeKumaPanelComponent],
   template: `
     <div class="row g-3">
       <!-- Gmail -->
@@ -36,6 +37,15 @@ import { HubRefreshService } from '../../core/services/hub-refresh.service';
           <app-calendar-panel />
         } @loading {
           <div class="card" style="height:200px;border-color:var(--border);"></div>
+        }
+      </div>
+
+      <!-- Uptime Kuma Monitors -->
+      <div class="col-12">
+        @defer (on idle) {
+          <app-uptime-kuma-panel />
+        } @loading {
+          <div class="card" style="height:120px;border-color:var(--border);"></div>
         }
       </div>
 

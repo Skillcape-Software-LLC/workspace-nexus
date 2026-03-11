@@ -30,7 +30,8 @@ public class HealthController : ControllerBase
             githubConnected     = githubConnected || !string.IsNullOrEmpty(_options.GitHubPat),
             githubWebhookSecret = !string.IsNullOrEmpty(_options.GitHubWebhookSecret),
             claudeApiKey        = !string.IsNullOrEmpty(_options.ClaudeApiKey),
-            apiKeyEnabled       = !string.IsNullOrEmpty(_options.ApiKey)
+            apiKeyEnabled       = !string.IsNullOrEmpty(_options.ApiKey),
+            uptimeKumaConnected = !string.IsNullOrEmpty(_options.UptimeKumaBaseUrl) && !string.IsNullOrEmpty(_options.UptimeKumaApiKey)
         });
     }
 }

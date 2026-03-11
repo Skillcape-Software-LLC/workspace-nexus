@@ -15,4 +15,7 @@ public class NexusOptions
     public string? ClaudeApiKey { get; set; }
     public string BriefingSchedule { get; set; } = "30 7 * * *";
     public int CiPollingIntervalMinutes { get; set; } = 5;
+    public string? UptimeKumaBaseUrl { get; set; }
+    public string? UptimeKumaApiKey { get; set; }
+    public int UptimeKumaPollingIntervalMinutes { get; set; } = 5;
 }

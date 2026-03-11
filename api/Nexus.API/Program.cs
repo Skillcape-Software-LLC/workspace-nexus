@@ -23,7 +23,10 @@ var nexusOptions = new NexusOptions
     GitHubWebhookSecret = builder.Configuration["GITHUB_WEBHOOK_SECRET"],
     ClaudeApiKey = builder.Configuration["CLAUDE_API_KEY"],
     BriefingSchedule = builder.Configuration["BRIEFING_SCHEDULE"] ?? "30 7 * * *",
-    CiPollingIntervalMinutes = int.TryParse(builder.Configuration["CI_POLLING_INTERVAL_MINUTES"], out var mins) ? mins : 5
+    CiPollingIntervalMinutes = int.TryParse(builder.Configuration["CI_POLLING_INTERVAL_MINUTES"], out var mins) ? mins : 5,
+    UptimeKumaBaseUrl = builder.Configuration["UPTIME_KUMA_BASE_URL"],
+    UptimeKumaApiKey = builder.Configuration["UPTIME_KUMA_API_KEY"],
+    UptimeKumaPollingIntervalMinutes = int.TryParse(builder.Configuration["UPTIME_KUMA_POLLING_INTERVAL_MINUTES"], out var ukMins) ? ukMins : 5
 };
 
 builder.Services.Configure<NexusOptions>(opt =>
@@ -41,6 +44,9 @@ builder.Services.Configure<NexusOptions>(opt =>
     opt.ClaudeApiKey = nexusOptions.ClaudeApiKey;
     opt.BriefingSchedule = nexusOptions.BriefingSchedule;
     opt.CiPollingIntervalMinutes = nexusOptions.CiPollingIntervalMinutes;
+    opt.UptimeKumaBaseUrl = nexusOptions.UptimeKumaBaseUrl;
+    opt.UptimeKumaApiKey = nexusOptions.UptimeKumaApiKey;
+    opt.UptimeKumaPollingIntervalMinutes = nexusOptions.UptimeKumaPollingIntervalMinutes;
 });
 
 // Ensure DB directory exists
@@ -67,6 +73,12 @@ builder.Services.AddScoped<GitHubService>(_ =>
                       connectionString));
 builder.Services.AddSingleton<CiPollingService>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<CiPollingService>());
+
+// Uptime Kuma
+builder.Services.AddScoped<IUptimeKumaMonitorRepository>(_ => new UptimeKumaMonitorRepository(connectionString));
+builder.Services.AddScoped<UptimeKumaService>();
+builder.Services.AddSingleton<UptimeKumaPollingService>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<UptimeKumaPollingService>());
 
 // Google services
 builder.Services.AddScoped<GoogleAuthService>(_ =>

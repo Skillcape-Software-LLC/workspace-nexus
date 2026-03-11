@@ -63,6 +63,17 @@ public static class DbInitializer
                 RepoFullName TEXT PRIMARY KEY,
                 AddedAt      TEXT NOT NULL
             );
+
+            CREATE TABLE IF NOT EXISTS UptimeKumaMonitors (
+                MonitorId   INTEGER PRIMARY KEY,
+                Name        TEXT NOT NULL,
+                Url         TEXT,
+                Type        TEXT NOT NULL DEFAULT '',
+                Active      INTEGER NOT NULL DEFAULT 1,
+                Status      TEXT NOT NULL DEFAULT 'Unknown',
+                Tags        TEXT NOT NULL DEFAULT '[]',
+                UpdatedAt   TEXT NOT NULL
+            );
         ";
         cmd.ExecuteNonQuery();
 
