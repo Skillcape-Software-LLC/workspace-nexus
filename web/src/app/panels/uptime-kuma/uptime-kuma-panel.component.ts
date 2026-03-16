@@ -181,12 +181,14 @@ export class UptimeKumaPanelComponent implements OnInit, OnDestroy {
   }
 
   load() {
-    this.loading.set(true);
+    if (this.monitors().length === 0) this.loading.set(true);
     this.error.set(null);
     this.svc.getMonitors().subscribe({
       next: (data: UptimeKumaMonitor[]) => { this.monitors.set(data); this.loading.set(false); },
       error: (err: { error?: { error?: string } }) => {
-        this.error.set(err.error?.error ?? 'Failed to load monitors.');
+        if (this.monitors().length === 0) {
+          this.error.set(err.error?.error ?? 'Failed to load monitors.');
+        }
         this.loading.set(false);
       }
     });

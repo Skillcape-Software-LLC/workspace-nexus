@@ -131,12 +131,14 @@ export class CalendarPanelComponent implements OnInit, OnDestroy {
   }
 
   load() {
-    this.loading.set(true);
+    if (this.events().length === 0) this.loading.set(true);
     this.error.set(null);
     this.svc.getEvents().subscribe({
       next: (data: CalendarEvent[]) => { this.events.set(data); this.loading.set(false); },
       error: (err: { error?: { error?: string } }) => {
-        this.error.set(err.error?.error ?? 'Failed to load calendar.');
+        if (this.events().length === 0) {
+          this.error.set(err.error?.error ?? 'Failed to load calendar.');
+        }
         this.loading.set(false);
       }
     });

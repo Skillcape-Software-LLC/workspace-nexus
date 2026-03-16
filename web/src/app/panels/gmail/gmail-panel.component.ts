@@ -108,13 +108,14 @@ export class GmailPanelComponent implements OnInit, OnDestroy {
   }
 
   load() {
-    this.loading.set(true);
+    if (this.emails().length === 0) this.loading.set(true);
     this.error.set(null);
     this.svc.getInbox().subscribe({
       next: (data: EmailSummary[]) => { this.emails.set(data); this.loading.set(false); },
       error: (err: { error?: { error?: string } }) => {
-        const msg = err.error?.error ?? 'Failed to load Gmail.';
-        this.error.set(msg);
+        if (this.emails().length === 0) {
+          this.error.set(err.error?.error ?? 'Failed to load Gmail.');
+        }
         this.loading.set(false);
       }
     });

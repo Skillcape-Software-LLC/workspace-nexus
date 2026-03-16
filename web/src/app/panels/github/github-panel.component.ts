@@ -134,12 +134,14 @@ export class GithubPanelComponent implements OnInit, OnDestroy {
   }
 
   load() {
-    this.loading.set(true);
+    if (this.statuses().length === 0) this.loading.set(true);
     this.error.set(null);
     this.svc.getCiStatuses().subscribe({
       next: (data: CiStatus[]) => { this.statuses.set(data); this.loading.set(false); },
       error: (err: { error?: { error?: string } }) => {
-        this.error.set(err.error?.error ?? 'Failed to load repos.');
+        if (this.statuses().length === 0) {
+          this.error.set(err.error?.error ?? 'Failed to load repos.');
+        }
         this.loading.set(false);
       }
     });

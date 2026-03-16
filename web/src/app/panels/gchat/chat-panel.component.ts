@@ -110,12 +110,14 @@ export class ChatPanelComponent implements OnInit, OnDestroy {
   }
 
   load() {
-    this.loading.set(true);
+    if (this.spaces().length === 0) this.loading.set(true);
     this.error.set(null);
     this.svc.getSpaces().subscribe({
       next: (data: ChatSpace[]) => { this.spaces.set(data); this.loading.set(false); },
       error: (err: { error?: { error?: string } }) => {
-        this.error.set(err.error?.error ?? 'Failed to load Chat spaces.');
+        if (this.spaces().length === 0) {
+          this.error.set(err.error?.error ?? 'Failed to load Chat spaces.');
+        }
         this.loading.set(false);
       }
     });
