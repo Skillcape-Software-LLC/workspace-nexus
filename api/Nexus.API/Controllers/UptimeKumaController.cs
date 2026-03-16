@@ -35,6 +35,9 @@ public class UptimeKumaController : ControllerBase
             m.Type,
             m.Active,
             Status = m.Status.ToString(),
+            m.ResponseTimeMs,
+            m.CertDaysRemaining,
+            m.CertIsValid,
             Tags = DeserializeTags(m.Tags),
             UpdatedAt = m.UpdatedAt.ToString("o")
         });

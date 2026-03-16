@@ -77,6 +77,28 @@ public static class DbInitializer
         ";
         cmd.ExecuteNonQuery();
 
+        // Idempotent column migrations for UptimeKumaMonitors table
+        var ukColumns = conn
+            .Query<string>("SELECT name FROM pragma_table_info('UptimeKumaMonitors')")
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var ukColumnsToAdd = new Dictionary<string, string>
+        {
+            ["ResponseTimeMs"]    = "INTEGER NOT NULL DEFAULT -1",
+            ["CertDaysRemaining"] = "INTEGER",
+            ["CertIsValid"]       = "INTEGER"
+        };
+
+        foreach (var (col, type) in ukColumnsToAdd)
+        {
+            if (!ukColumns.Contains(col))
+            {
+                var alter = conn.CreateCommand();
+                alter.CommandText = $"ALTER TABLE UptimeKumaMonitors ADD COLUMN {col} {type}";
+                alter.ExecuteNonQuery();
+            }
+        }
+
         // Idempotent column migrations for CiStatuses table
         var ciColumns = conn
             .Query<string>("SELECT name FROM pragma_table_info('CiStatuses')")

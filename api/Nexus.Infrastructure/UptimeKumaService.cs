@@ -1,6 +1,4 @@
-using System.Net.Http.Headers;
-using System.Text.Json;
-using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Nexus.Core.Models;
@@ -13,11 +11,14 @@ public class UptimeKumaService
     private readonly ILogger<UptimeKumaService> _logger;
     private readonly HttpClient _http;
 
-    private static readonly JsonSerializerOptions JsonOpts = new()
-    {
-        PropertyNameCaseInsensitive = true,
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
-    };
+    // Matches: monitor_status{labels} 1  or  monitor_response_time{labels} 173
+    private static readonly Regex MetricLineRegex = new(
+        @"^(?<metric>monitor_\w+)\{(?<labels>[^}]+)\}\s+(?<value>-?\d+\.?\d*)$",
+        RegexOptions.Multiline | RegexOptions.Compiled);
+
+    private static readonly Regex LabelRegex = new(
+        @"(?<key>\w+)=""(?<val>[^""]*)""",
+        RegexOptions.Compiled);
 
     public UptimeKumaService(IOptions<NexusOptions> options, ILogger<UptimeKumaService> logger)
     {
@@ -29,8 +30,11 @@ public class UptimeKumaService
             _http.BaseAddress = new Uri(_options.UptimeKumaBaseUrl.TrimEnd('/') + "/");
 
         if (!string.IsNullOrEmpty(_options.UptimeKumaApiKey))
-            _http.DefaultRequestHeaders.Authorization =
-                new AuthenticationHeaderValue("Bearer", _options.UptimeKumaApiKey);
+        {
+            var credentials = Convert.ToBase64String(
+                System.Text.Encoding.UTF8.GetBytes($":{_options.UptimeKumaApiKey}"));
+            _http.DefaultRequestHeaders.TryAddWithoutValidation("Authorization", $"Basic {credentials}");
+        }
     }
 
     public bool IsConfigured =>
@@ -39,23 +43,90 @@ public class UptimeKumaService
 
     public async Task<List<UptimeKumaMonitor>> GetMonitorsAsync()
     {
-        var response = await _http.GetAsync("api/monitors");
+        var response = await _http.GetAsync("metrics");
+        var body = await response.Content.ReadAsStringAsync();
+
+        _logger.LogDebug("Uptime Kuma metrics response: status={Status}, length={Len}",
+            (int)response.StatusCode, body.Length);
+
         response.EnsureSuccessStatusCode();
 
-        var json = await response.Content.ReadAsStringAsync();
-        var apiMonitors = JsonSerializer.Deserialize<List<ApiMonitor>>(json, JsonOpts) ?? [];
+        return ParsePrometheusMetrics(body);
+    }
 
-        return apiMonitors.Select(m => new UptimeKumaMonitor
+    private List<UptimeKumaMonitor> ParsePrometheusMetrics(string body)
+    {
+        // Group all metric values by monitor_name
+        var monitorData = new Dictionary<string, MonitorMetrics>();
+
+        foreach (Match match in MetricLineRegex.Matches(body))
         {
-            MonitorId = m.Id,
-            Name      = m.Name ?? string.Empty,
-            Url       = m.Url,
-            Type      = m.Type ?? string.Empty,
-            Active    = m.Active,
-            Status    = MapStatus(m.HeartbeatStatus),
-            Tags      = SerializeTags(m.Tags),
-            UpdatedAt = DateTime.UtcNow
+            var metricName = match.Groups["metric"].Value;
+            var labelsRaw = match.Groups["labels"].Value;
+            var value = match.Groups["value"].Value;
+
+            var labels = ParseLabels(labelsRaw);
+            if (!labels.TryGetValue("monitor_name", out var name) || string.IsNullOrEmpty(name))
+                continue;
+
+            if (!monitorData.TryGetValue(name, out var metrics))
+            {
+                metrics = new MonitorMetrics { Labels = labels };
+                monitorData[name] = metrics;
+            }
+
+            switch (metricName)
+            {
+                case "monitor_status":
+                    metrics.Status = int.TryParse(value, out var s) ? s : (int?)null;
+                    break;
+                case "monitor_response_time":
+                    metrics.ResponseTimeMs = int.TryParse(value, out var rt) ? rt : -1;
+                    break;
+                case "monitor_cert_days_remaining":
+                    metrics.CertDaysRemaining = int.TryParse(value, out var cd) ? cd : (int?)null;
+                    break;
+                case "monitor_cert_is_valid":
+                    metrics.CertIsValid = value == "1";
+                    break;
+            }
+        }
+
+        var tagFilter = _options.UptimeKumaTagFilter;
+
+        return monitorData
+            .Where(kvp => string.IsNullOrEmpty(tagFilter) ||
+                (kvp.Value.Labels.TryGetValue("monitor_tags", out var tags) &&
+                 tags.Split(',').Any(t => t.Trim().Equals(tagFilter, StringComparison.OrdinalIgnoreCase))))
+            .Select(kvp =>
+        {
+            var name = kvp.Key;
+            var m = kvp.Value;
+            var labels = m.Labels;
+
+            return new UptimeKumaMonitor
+            {
+                MonitorId         = StableHash(name),
+                Name              = name,
+                Url               = labels.GetValueOrDefault("monitor_url"),
+                Type              = labels.GetValueOrDefault("monitor_type") ?? string.Empty,
+                Active            = true,
+                Status            = MapStatus(m.Status),
+                ResponseTimeMs    = m.ResponseTimeMs ?? -1,
+                CertDaysRemaining = m.CertDaysRemaining,
+                CertIsValid       = m.CertIsValid,
+                Tags              = "[]",
+                UpdatedAt         = DateTime.UtcNow
+            };
         }).ToList();
+    }
+
+    private static Dictionary<string, string> ParseLabels(string labelsRaw)
+    {
+        var result = new Dictionary<string, string>();
+        foreach (Match m in LabelRegex.Matches(labelsRaw))
+            result[m.Groups["key"].Value] = m.Groups["val"].Value;
+        return result;
     }
 
     private static MonitorStatusValue MapStatus(int? status) => status switch
@@ -67,48 +138,26 @@ public class UptimeKumaService
         _ => MonitorStatusValue.Unknown
     };
 
-    private static string SerializeTags(List<ApiTag>? tags)
+    /// <summary>
+    /// FNV-1a hash to generate a stable positive integer ID from a monitor name.
+    /// </summary>
+    private static int StableHash(string name)
     {
-        if (tags == null || tags.Count == 0) return "[]";
-        var mapped = tags.Select(t => new { tagId = t.TagId, name = t.Name ?? "", value = t.Value ?? "" });
-        return JsonSerializer.Serialize(mapped, JsonOpts);
+        uint hash = 2166136261;
+        foreach (var c in name)
+        {
+            hash ^= c;
+            hash *= 16777619;
+        }
+        return (int)(hash & 0x7FFFFFFF);
     }
 
-    // ── API response shapes ────────────────────────────────────────────────
-
-    private class ApiMonitor
+    private class MonitorMetrics
     {
-        [JsonPropertyName("id")]
-        public int Id { get; set; }
-
-        [JsonPropertyName("name")]
-        public string? Name { get; set; }
-
-        [JsonPropertyName("url")]
-        public string? Url { get; set; }
-
-        [JsonPropertyName("type")]
-        public string? Type { get; set; }
-
-        [JsonPropertyName("active")]
-        public bool Active { get; set; }
-
-        [JsonPropertyName("heartbeatStatus")]
-        public int? HeartbeatStatus { get; set; }
-
-        [JsonPropertyName("tags")]
-        public List<ApiTag>? Tags { get; set; }
-    }
-
-    private class ApiTag
-    {
-        [JsonPropertyName("tag_id")]
-        public int TagId { get; set; }
-
-        [JsonPropertyName("name")]
-        public string? Name { get; set; }
-
-        [JsonPropertyName("value")]
-        public string? Value { get; set; }
+        public Dictionary<string, string> Labels { get; set; } = new();
+        public int? Status { get; set; }
+        public int? ResponseTimeMs { get; set; }
+        public int? CertDaysRemaining { get; set; }
+        public bool? CertIsValid { get; set; }
     }
 }

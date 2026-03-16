@@ -77,13 +77,24 @@ import { HubRefreshService } from '../../core/services/hub-refresh.service';
                 </span>
               </div>
 
-              <!-- Bottom row: url + time ago -->
-              <div class="d-flex align-items-baseline gap-1 mt-1" style="font-size:0.7rem;color:var(--text-dim);">
-                @if (m.url) {
+              <!-- Bottom row: url + metrics + time ago -->
+              <div class="d-flex align-items-baseline gap-1 mt-1 flex-wrap" style="font-size:0.7rem;color:var(--text-dim);">
+                @if (m.url && m.url !== 'https://') {
                   <a [href]="m.url" target="_blank" rel="noopener"
                      class="text-truncate" style="color:var(--text-secondary);text-decoration:none;">
                     {{ m.url }}
                   </a>
+                  <span style="flex-shrink:0;">·</span>
+                }
+                @if (m.responseTimeMs >= 0) {
+                  <span style="flex-shrink:0;color:var(--text-secondary);">{{ m.responseTimeMs }}ms</span>
+                  <span style="flex-shrink:0;">·</span>
+                }
+                @if (m.certDaysRemaining !== null && m.certDaysRemaining !== undefined) {
+                  <span style="flex-shrink:0;"
+                        [style.color]="m.certDaysRemaining <= 14 ? 'var(--red)' : m.certDaysRemaining <= 30 ? 'var(--yellow)' : 'var(--text-secondary)'">
+                    <i class="bi bi-shield-lock" style="font-size:0.65rem;"></i> {{ m.certDaysRemaining }}d
+                  </span>
                   <span style="flex-shrink:0;">·</span>
                 }
                 <span style="flex-shrink:0;" [title]="m.updatedAt">{{ timeAgo(m.updatedAt) }}</span>

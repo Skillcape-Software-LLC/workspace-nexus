@@ -6,6 +6,11 @@ using Nexus.Infrastructure.Database;
 using Nexus.Infrastructure.GoogleServices;
 using Nexus.Infrastructure.Repositories;
 
+// Load .env file from repo root (for local dev without Docker)
+var envPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", ".env");
+if (File.Exists(envPath))
+    DotNetEnv.Env.Load(envPath);
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Map env vars to NexusOptions
@@ -26,6 +31,7 @@ var nexusOptions = new NexusOptions
     CiPollingIntervalMinutes = int.TryParse(builder.Configuration["CI_POLLING_INTERVAL_MINUTES"], out var mins) ? mins : 5,
     UptimeKumaBaseUrl = builder.Configuration["UPTIME_KUMA_BASE_URL"],
     UptimeKumaApiKey = builder.Configuration["UPTIME_KUMA_API_KEY"],
+    UptimeKumaTagFilter = builder.Configuration["UPTIME_KUMA_TAG_FILTER"],
     UptimeKumaPollingIntervalMinutes = int.TryParse(builder.Configuration["UPTIME_KUMA_POLLING_INTERVAL_MINUTES"], out var ukMins) ? ukMins : 5
 };
 
@@ -46,6 +52,7 @@ builder.Services.Configure<NexusOptions>(opt =>
     opt.CiPollingIntervalMinutes = nexusOptions.CiPollingIntervalMinutes;
     opt.UptimeKumaBaseUrl = nexusOptions.UptimeKumaBaseUrl;
     opt.UptimeKumaApiKey = nexusOptions.UptimeKumaApiKey;
+    opt.UptimeKumaTagFilter = nexusOptions.UptimeKumaTagFilter;
     opt.UptimeKumaPollingIntervalMinutes = nexusOptions.UptimeKumaPollingIntervalMinutes;
 });
 

@@ -26,16 +26,19 @@ public class UptimeKumaMonitorRepository : IUptimeKumaMonitorRepository
     {
         using var conn = Connect();
         await conn.ExecuteAsync(@"
-            INSERT INTO UptimeKumaMonitors (MonitorId, Name, Url, Type, Active, Status, Tags, UpdatedAt)
-            VALUES (@MonitorId, @Name, @Url, @Type, @Active, @Status, @Tags, @UpdatedAt)
+            INSERT INTO UptimeKumaMonitors (MonitorId, Name, Url, Type, Active, Status, ResponseTimeMs, CertDaysRemaining, CertIsValid, Tags, UpdatedAt)
+            VALUES (@MonitorId, @Name, @Url, @Type, @Active, @Status, @ResponseTimeMs, @CertDaysRemaining, @CertIsValid, @Tags, @UpdatedAt)
             ON CONFLICT(MonitorId) DO UPDATE SET
-                Name      = excluded.Name,
-                Url       = excluded.Url,
-                Type      = excluded.Type,
-                Active    = excluded.Active,
-                Status    = excluded.Status,
-                Tags      = excluded.Tags,
-                UpdatedAt = excluded.UpdatedAt",
+                Name              = excluded.Name,
+                Url               = excluded.Url,
+                Type              = excluded.Type,
+                Active            = excluded.Active,
+                Status            = excluded.Status,
+                ResponseTimeMs    = excluded.ResponseTimeMs,
+                CertDaysRemaining = excluded.CertDaysRemaining,
+                CertIsValid       = excluded.CertIsValid,
+                Tags              = excluded.Tags,
+                UpdatedAt         = excluded.UpdatedAt",
             new
             {
                 monitor.MonitorId,
@@ -44,6 +47,9 @@ public class UptimeKumaMonitorRepository : IUptimeKumaMonitorRepository
                 monitor.Type,
                 Active = monitor.Active ? 1 : 0,
                 Status = monitor.Status.ToString(),
+                monitor.ResponseTimeMs,
+                monitor.CertDaysRemaining,
+                CertIsValid = monitor.CertIsValid.HasValue ? (int?)(monitor.CertIsValid.Value ? 1 : 0) : null,
                 monitor.Tags,
                 UpdatedAt = monitor.UpdatedAt.ToString("o")
             });
@@ -66,14 +72,17 @@ public class UptimeKumaMonitorRepository : IUptimeKumaMonitorRepository
 
     private static UptimeKumaMonitor ToModel(MonitorRow r) => new()
     {
-        MonitorId = r.MonitorId,
-        Name      = r.Name,
-        Url       = r.Url,
-        Type      = r.Type,
-        Active    = r.Active == 1,
-        Status    = Enum.TryParse<MonitorStatusValue>(r.Status, out var s) ? s : MonitorStatusValue.Unknown,
-        Tags      = r.Tags,
-        UpdatedAt = DateTime.Parse(r.UpdatedAt)
+        MonitorId         = r.MonitorId,
+        Name              = r.Name,
+        Url               = r.Url,
+        Type              = r.Type,
+        Active            = r.Active == 1,
+        Status            = Enum.TryParse<MonitorStatusValue>(r.Status, out var s) ? s : MonitorStatusValue.Unknown,
+        ResponseTimeMs    = r.ResponseTimeMs,
+        CertDaysRemaining = r.CertDaysRemaining,
+        CertIsValid       = r.CertIsValid.HasValue ? r.CertIsValid.Value == 1 : null,
+        Tags              = r.Tags,
+        UpdatedAt         = DateTime.Parse(r.UpdatedAt)
     };
 
     private class MonitorRow
@@ -84,6 +93,9 @@ public class UptimeKumaMonitorRepository : IUptimeKumaMonitorRepository
         public string Type { get; set; } = "";
         public int Active { get; set; }
         public string Status { get; set; } = "Unknown";
+        public int ResponseTimeMs { get; set; } = -1;
+        public int? CertDaysRemaining { get; set; }
+        public int? CertIsValid { get; set; }
         public string Tags { get; set; } = "[]";
         public string UpdatedAt { get; set; } = "";
     }

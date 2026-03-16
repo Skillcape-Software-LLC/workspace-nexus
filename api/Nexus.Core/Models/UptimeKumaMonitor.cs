@@ -17,6 +17,9 @@ public class UptimeKumaMonitor
     public string Type { get; set; } = string.Empty;
     public bool Active { get; set; }
     public MonitorStatusValue Status { get; set; } = MonitorStatusValue.Unknown;
+    public int ResponseTimeMs { get; set; } = -1;
+    public int? CertDaysRemaining { get; set; }
+    public bool? CertIsValid { get; set; }
     public string Tags { get; set; } = "[]";
     public DateTime UpdatedAt { get; set; }
 }

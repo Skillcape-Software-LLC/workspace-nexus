@@ -13,6 +13,9 @@ export interface UptimeKumaMonitor {
   type: string;
   active: boolean;
   status: MonitorStatusValue;
+  responseTimeMs: number;
+  certDaysRemaining: number | null;
+  certIsValid: boolean | null;
   tags: UptimeKumaTag[];
   updatedAt: string;
 }

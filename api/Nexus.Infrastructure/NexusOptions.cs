@@ -17,5 +17,6 @@ public class NexusOptions
     public int CiPollingIntervalMinutes { get; set; } = 5;
     public string? UptimeKumaBaseUrl { get; set; }
     public string? UptimeKumaApiKey { get; set; }
+    public string? UptimeKumaTagFilter { get; set; }
     public int UptimeKumaPollingIntervalMinutes { get; set; } = 5;
 }
